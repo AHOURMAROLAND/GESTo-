@@ -2,42 +2,116 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GESTo — Connexion</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;min-height:100vh;
+         background:linear-gradient(135deg,#1E3A8A 0%,#1E40AF 50%,#1D4ED8 100%);
+         display:flex;align-items:center;justify-content:center;padding:20px}
+    .card{background:#fff;border-radius:16px;padding:40px;width:100%;max-width:420px;
+          box-shadow:0 20px 40px rgba(0,0,0,0.2)}
+    .logo{text-align:center;margin-bottom:32px}
+    .logo-circle{width:64px;height:64px;background:#1E40AF;border-radius:14px;
+                 display:flex;align-items:center;justify-content:center;
+                 margin:0 auto 12px;font-size:28px;font-weight:700;color:#fff}
+    .logo h1{font-size:22px;font-weight:700;color:#1E40AF}
+    .logo p{font-size:13px;color:#64748B;margin-top:4px}
+    .field{margin-bottom:18px}
+    .field label{display:block;font-size:13px;font-weight:600;
+                 color:#374151;margin-bottom:6px}
+    .field select,.field input{width:100%;padding:11px 14px;
+      border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;
+      color:#111827;outline:none;transition:border-color 0.2s;
+      appearance:none;background:#FAFAFA}
+    .field select:focus,.field input:focus{border-color:#1E40AF;background:#fff}
+    .error{background:#FEE2E2;color:#991B1B;padding:10px 14px;
+           border-radius:8px;font-size:13px;margin-bottom:16px;
+           border-left:3px solid #DC2626}
+    .btn{width:100%;padding:13px;background:#1E40AF;color:#fff;border:none;
+         border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;
+         transition:background 0.2s;margin-top:6px}
+    .btn:hover{background:#1D4ED8}
+    .footer{text-align:center;font-size:12px;color:#94A3B8;margin-top:24px}
+    .pw-wrap{position:relative}
+    .pw-wrap input{padding-right:44px}
+    .pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+            background:none;border:none;cursor:pointer;color:#94A3B8;font-size:16px}
+  </style>
 </head>
-<body style="font-family:Arial;padding:40px;background:#EFF6FF">
-  <div style="background:white;padding:32px;border-radius:12px;
-              max-width:400px;margin:auto;border:1px solid #BFDBFE">
-    <h2 style="color:#1E40AF;margin-bottom:24px">GESTo — Connexion</h2>
-    <form method="post">
-      {% csrf_token %}
-      <div style="margin-bottom:16px">
-        <label style="display:block;font-size:13px;color:#475569;margin-bottom:6px">
-          Nom d'utilisateur
-        </label>
-        <input type="text" name="username" required
-               style="width:100%;padding:10px;border:1px solid #CBD5E1;
-                      border-radius:8px;font-size:14px;box-sizing:border-box">
-      </div>
-      <div style="margin-bottom:24px">
-        <label style="display:block;font-size:13px;color:#475569;margin-bottom:6px">
-          Mot de passe
-        </label>
-        <input type="password" name="password" required
-               style="width:100%;padding:10px;border:1px solid #CBD5E1;
-                      border-radius:8px;font-size:14px;box-sizing:border-box">
-      </div>
-      {% if form.errors %}
-      <div style="background:#FEE2E2;color:#991B1B;padding:10px;
-                  border-radius:8px;font-size:13px;margin-bottom:16px">
-        Identifiants incorrects.
-      </div>
-      {% endif %}
-      <button type="submit"
-              style="width:100%;padding:12px;background:#2563EB;color:white;
-                     border:none;border-radius:8px;font-size:14px;cursor:pointer">
-        Se connecter
-      </button>
-    </form>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-circle">G</div>
+    <h1>GESTo</h1>
+    <p>Complexe Scolaire Ste Bakhita</p>
   </div>
+
+  {% if error %}
+  <div class="error">{{ error }}</div>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+
+    <div class="field">
+      <label for="role">Votre role</label>
+      <select name="role" id="role" required onchange="updatePlaceholder()">
+        <option value="">Selectionnez votre role...</option>
+        {% for code, label in roles %}
+        <option value="{{ code }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="username">Nom d'utilisateur</label>
+      <input type="text" name="username" id="username"
+             placeholder="Votre nom d'utilisateur"
+             required autocomplete="username">
+    </div>
+
+    <div class="field">
+      <label for="password">Mot de passe</label>
+      <div class="pw-wrap">
+        <input type="password" name="password" id="password"
+               placeholder="Votre mot de passe"
+               required autocomplete="current-password">
+        <button type="button" class="pw-eye" onclick="togglePw()">
+          <span id="eye-icon">o</span>
+        </button>
+      </div>
+    </div>
+
+    <button type="submit" class="btn">Se connecter</button>
+  </form>
+
+  <div class="footer">GESTo v3 — Gestion Scolaire Togo</div>
+</div>
+
+<script>
+const placeholders = {
+  DIRECTEUR:'Ex: directeur.dupont',
+  CENSEUR:'Ex: censeur.martin',
+  PROFESSEUR:'Ex: prof.kouassi',
+  COMPTABLE:'Ex: compta.afi',
+  SURVEILLANT:'Ex: surv.koffi',
+  SECRETAIRE:'Ex: secret.ama',
+  PARENT:'Ex: parent.agbeko',
+  ELEVE:'Ex: jean.koffi ou matricule',
+};
+function updatePlaceholder(){
+  const r = document.getElementById('role').value;
+  document.getElementById('username').placeholder =
+    placeholders[r] || 'Votre nom d\'utilisateur';
+}
+function togglePw(){
+  const i = document.getElementById('password');
+  const e = document.getElementById('eye-icon');
+  i.type = i.type === 'password' ? 'text' : 'password';
+  e.textContent = i.type === 'password' ? 'o' : 'x';
+}
+</script>
 </body>
 </html>
