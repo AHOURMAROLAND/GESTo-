@@ -213,11 +213,15 @@ def dashboard(request):
             'evaluation__matiere_salle__matiere',
         )[:5]
 
-        # Graphique taux saisie par matiere
-        labels = [ms['ms'].matiere.nom for ms in stats_matieres]
-        data = [ms['taux'] for ms in stats_matieres]
         context['chart_saisie_labels'] = json.dumps(labels)
         context['chart_saisie_data'] = json.dumps(data)
+
+        # Devoirs recents
+        from apps.devoirs.models import Devoir
+        context['devoirs_recents'] = Devoir.objects.filter(
+            publie_par=user,
+            matiere_salle__salle__annee=annee,
+        ).order_by('-date_publication')[:5] if annee else []
 
     # ── COMPTABLE ─────────────────────────────────────────────────────────────
     elif user.role == 'COMPTABLE':
@@ -397,12 +401,22 @@ def dashboard(request):
                 context['chart_eleve_labels'] = json.dumps(labels)
                 context['chart_eleve_data'] = json.dumps(data)
 
-            # Absences
             context['nb_absences'] = Presence.objects.filter(
                 eleve=eleve,
                 statut__in=['ABSENT', 'ABSENT_JUSTIFIE'],
                 seance__matiere_salle__salle__annee=annee,
             ).count() if annee else 0
+
+            # Devoirs a rendre
+            from apps.devoirs.models import Devoir, SoumissionDevoir
+            tous_devoirs = Devoir.objects.filter(
+                matiere_salle__salle=insc.salle,
+                statut='PUBLIE'
+            ).exclude(
+                pk__in=SoumissionDevoir.objects.filter(eleve=eleve).values_list('devoir_id', flat=True)
+            ).order_by('date_limite')
+            context['devoirs_a_rendre'] = tous_devoirs[:5]
+            context['nb_devoirs_attente'] = tous_devoirs.count()
 
     role = user.role
     template = f'dashboards/{role.lower()}.html'

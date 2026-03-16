@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block title %}Devoirs{% endblock %}
+{% block page_title %}Devoirs{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Devoirs</h1>
+    <p>{{ devoirs.count }} devoir(s)</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    {% if request.user.role == 'ELEVE' %}
+    <a href="{% url 'mes_soumissions' %}" class="btn btn-secondary">
+      <i class="fas fa-history"></i> Mes soumissions
+    </a>
+    {% endif %}
+    {% if request.user.role in 'PROFESSEUR CENSEUR DIRECTEUR' %}
+    <a href="{% url 'nouveau_devoir' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouveau devoir
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% for devoir in devoirs %}
+<div class="card mb-3" style="overflow:hidden">
+  <div style="display:flex;align-items:stretch">
+    <div style="width:8px;background:
+      {% if devoir.est_en_retard %}#DC2626
+      {% elif devoir.statut == 'CLOS' %}#64748B
+      {% else %}#16A34A{% endif %};
+      flex-shrink:0">
+    </div>
+    <div style="flex:1;padding:16px 20px">
+      <div style="display:flex;justify-content:space-between;
+                  align-items:flex-start;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <a href="{% url 'detail_devoir' devoir.pk %}"
+               style="font-size:16px;font-weight:600;
+                      color:var(--text-main);text-decoration:none">
+              {{ devoir.titre }}
+            </a>
+            <span class="badge
+              {% if devoir.statut == 'PUBLIE' %}badge-success
+              {% elif devoir.statut == 'CLOS' %}badge-gray
+              {% else %}badge-warning{% endif %}">
+              {{ devoir.get_statut_display }}
+            </span>
+            <span class="badge badge-info">
+              {{ devoir.get_type_display }}
+            </span>
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:5px">
+            <i class="fas fa-book" style="width:16px"></i>
+            {{ devoir.matiere_salle.matiere.nom }} —
+            {{ devoir.matiere_salle.salle.nom }}
+            {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+            <span style="margin-left:8px">
+              Par {{ devoir.publie_par.nom_complet }}
+            </span>
+            {% endif %}
+          </div>
+          <div style="font-size:12px;color:
+            {% if devoir.est_en_retard %}var(--danger)
+            {% else %}var(--text-muted){% endif %};
+            margin-top:4px">
+            <i class="fas fa-calendar-times" style="width:16px"></i>
+            Date limite : <strong>{{ devoir.date_limite|date:"d/m/Y" }}</strong>
+            {% if devoir.est_en_retard %}
+            <span style="color:var(--danger)"> (Depasse)</span>
+            {% endif %}
+          </div>
+        </div>
+        <div style="text-align:right">
+          {% if request.user.role in 'PROFESSEUR CENSEUR DIRECTEUR' %}
+          <div style="font-size:13px;font-weight:600;
+                      color:var(--primary)">
+            {{ devoir.nb_soumissions }}/{{ devoir.nb_inscrits }}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted)">
+            soumissions
+          </div>
+          <div class="progress-bar-container" style="width:80px;margin-top:4px">
+            <div class="progress-bar-fill"
+                 style="width:{{ devoir.taux_remise }}%">
+            </div>
+          </div>
+          {% endif %}
+          <div style="margin-top:8px">
+            <a href="{% url 'detail_devoir' devoir.pk %}"
+               class="btn btn-primary btn-sm">
+              <i class="fas fa-eye"></i> Voir
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% empty %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-book-open" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Aucun devoir.</p>
+  {% if request.user.role in 'PROFESSEUR CENSEUR DIRECTEUR' %}
+  <a href="{% url 'nouveau_devoir' %}" class="btn btn-primary"
+     style="margin-top:12px">
+    <i class="fas fa-plus"></i> Publier le premier devoir
+  </a>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

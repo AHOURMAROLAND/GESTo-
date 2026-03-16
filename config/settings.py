@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'apps.discipline',
     'apps.communication',
     'apps.documents',
+    'apps.devoirs',
     'apps.core',
 ]
 

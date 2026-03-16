@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% block title %}{{ devoir.titre }}{% endblock %}
+{% block page_title %}Detail devoir{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ devoir.titre }}</h1>
+    <p>
+      {{ devoir.matiere_salle.matiere.nom }} —
+      {{ devoir.matiere_salle.salle.nom }} —
+      Note sur {{ devoir.note_sur }}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    {% if peut_soumettre %}
+    <a href="{% url 'soumettre_devoir' devoir.pk %}"
+       class="btn btn-primary">
+      <i class="fas fa-upload"></i> Soumettre
+    </a>
+    {% endif %}
+    {% if request.user.role in 'PROFESSEUR CENSEUR DIRECTEUR' %}
+    {% if devoir.statut == 'PUBLIE' %}
+    <form method="post" action="{% url 'clore_devoir' devoir.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-warning"
+              onclick="return confirm('Clore ce devoir ?')">
+        <i class="fas fa-lock"></i> Clore
+      </button>
+    </form>
+    {% endif %}
+    {% endif %}
+    <a href="{% url 'liste_devoirs' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Infos -->
+  <div class="card">
+    <div class="card-header">
+      <h5>Informations</h5>
+      <span class="badge
+        {% if devoir.statut == 'PUBLIE' %}badge-success
+        {% elif devoir.statut == 'CLOS' %}badge-gray
+        {% else %}badge-warning{% endif %}">
+        {{ devoir.get_statut_display }}
+      </span>
+    </div>
+    <div class="card-body">
+      <table class="table">
+        <tr>
+          <td style="color:var(--text-muted);width:140px">Type</td>
+          <td>{{ devoir.get_type_display }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Publie le</td>
+          <td>{{ devoir.date_publication|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Date limite</td>
+          <td>
+            <strong style="color:
+              {% if devoir.est_en_retard %}var(--danger)
+              {% else %}var(--success){% endif %}">
+              {{ devoir.date_limite|date:"d/m/Y" }}
+            </strong>
+            {% if devoir.est_en_retard %}
+            <span class="badge badge-danger">Depasse</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% if request.user.role in 'PROFESSEUR CENSEUR DIRECTEUR' %}
+        <tr>
+          <td style="color:var(--text-muted)">Remises</td>
+          <td>
+            <strong>{{ devoir.nb_soumissions }}</strong>/{{ devoir.nb_inscrits }}
+            ({{ devoir.taux_remise }}%)
+          </td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="color:var(--text-muted)">Publie par</td>
+          <td>{{ devoir.publie_par.nom_complet }}</td>
+        </tr>
+      </table>
+
+      {% if devoir.fichier_joint %}
+      <div style="margin-top:12px">
+        <a href="{{ devoir.fichier_joint.url }}"
+           class="btn btn-secondary btn-sm" target="_blank">
+          <i class="fas fa-download"></i> Telecharger le sujet
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Description -->
+  <div class="card">
+    <div class="card-header"><h5>Enonce</h5></div>
+    <div class="card-body">
+      <div style="font-size:13px;line-height:1.7;white-space:pre-wrap">
+        {{ devoir.description }}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Ma soumission (vue eleve) -->
+{% if ma_soumission %}
+<div class="card mt-4">
+  <div class="card-header">
+    <h5>Ma soumission</h5>
+    <span class="badge
+      {% if ma_soumission.statut == 'CORRIGE' %}badge-success
+      {% elif ma_soumission.statut == 'EN_RETARD' %}badge-danger
+      {% else %}badge-info{% endif %}">
+      {{ ma_soumission.get_statut_display }}
+    </span>
+  </div>
+  <div class="card-body">
+    {% if ma_soumission.note is not None %}
+    <div style="font-size:24px;font-weight:700;
+                color:{% if ma_soumission.note >= devoir.note_sur|floatformat:0|add:0 / 2 %}var(--success){% else %}var(--danger){% endif %};
+                margin-bottom:8px">
+      {{ ma_soumission.note }}/{{ devoir.note_sur }}
+    </div>
+    {% endif %}
+    {% if ma_soumission.commentaire_prof %}
+    <div class="alert alert-info" style="margin-bottom:12px">
+      <i class="fas fa-comment"></i>
+      <strong>Commentaire :</strong> {{ ma_soumission.commentaire_prof }}
+    </div>
+    {% endif %}
+    <div style="font-size:13px;color:var(--text-muted)">
+      Soumis le {{ ma_soumission.date_soumission|date:"d/m/Y a H:i" }}
+    </div>
+    {% if ma_soumission.contenu_texte %}
+    <div style="margin-top:12px;padding:12px;background:var(--bg-page);
+                border-radius:8px;font-size:13px;white-space:pre-wrap">
+      {{ ma_soumission.contenu_texte }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Soumissions (vue prof/admin) -->
+{% if request.user.role in 'PROFESSEUR CENSEUR DIRECTEUR' %}
+<div class="card mt-4">
+  <div class="card-header">
+    <h5>
+      Soumissions ({{ soumissions.count }}/{{ devoir.nb_inscrits }})
+    </h5>
+  </div>
+
+  {% if soumissions %}
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Eleve</th>
+          <th>Date soumission</th>
+          <th>Statut</th>
+          <th>Note</th>
+          <th>Correction</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in soumissions %}
+        <tr>
+          <td><strong>{{ s.eleve.nom_complet }}</strong></td>
+          <td>{{ s.date_soumission|date:"d/m/Y H:i" }}</td>
+          <td>
+            <span class="badge
+              {% if s.statut == 'CORRIGE' %}badge-success
+              {% elif s.statut == 'EN_RETARD' %}badge-danger
+              {% else %}badge-info{% endif %}">
+              {{ s.get_statut_display }}
+            </span>
+          </td>
+          <td>
+            {% if s.note is not None %}
+            <strong style="color:var(--primary)">
+              {{ s.note }}/{{ devoir.note_sur }}
+            </strong>
+            {% else %}
+            <span style="color:var(--text-muted)">Non note</span>
+            {% endif %}
+          </td>
+          <td>
+            <button class="btn btn-secondary btn-sm"
+                    onclick="ouvrirCorrection(
+                      {{ s.pk }},
+                      '{{ s.eleve.nom_complet }}',
+                      '{{ s.note|default:'' }}',
+                      '{{ s.commentaire_prof|escapejs }}'
+                    )">
+              <i class="fas fa-pen"></i>
+              {% if s.statut == 'CORRIGE' %}Modifier{% else %}Corriger{% endif %}
+            </button>
+            {% if s.contenu_texte or s.fichier %}
+            <button class="btn btn-primary btn-sm"
+                    onclick="voirTravail(
+                      '{{ s.contenu_texte|escapejs }}',
+                      '{% if s.fichier %}{{ s.fichier.url }}{% endif %}'
+                    )">
+              <i class="fas fa-eye"></i>
+            </button>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if non_rendus %}
+  <div style="padding:16px 20px;border-top:1px solid var(--border-color)">
+    <div style="font-size:13px;font-weight:600;color:var(--danger);
+                margin-bottom:8px">
+      {{ non_rendus|length }} n'ont pas rendu
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      {% for eleve in non_rendus %}
+      <span class="badge badge-danger">{{ eleve.nom_complet }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Modal correction -->
+<div id="modal-correction" style="display:none;position:fixed;inset:0;
+     background:rgba(0,0,0,0.4);z-index:2000;
+     align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border-radius:12px;padding:24px;
+              width:100%;max-width:460px;margin:20px">
+    <h3 style="font-size:15px;margin-bottom:16px">
+      Correction — <span id="modal-eleve-nom"></span>
+    </h3>
+    <form method="post" id="form-correction">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">
+          Note /{{ devoir.note_sur }}
+        </label>
+        <input type="number" name="note" class="form-control"
+               id="modal-note" min="0" max="{{ devoir.note_sur }}"
+               step="0.25" placeholder="Laisser vide si non note">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Commentaire</label>
+        <textarea name="commentaire" class="form-control" rows="3"
+                  id="modal-commentaire"
+                  placeholder="Feedback pour l'eleve..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+        <button type="button" class="btn btn-secondary"
+                onclick="fermerModal()">
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal voir travail -->
+<div id="modal-travail" style="display:none;position:fixed;inset:0;
+     background:rgba(0,0,0,0.4);z-index:2000;
+     align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border-radius:12px;padding:24px;
+              width:100%;max-width:600px;margin:20px;max-height:80vh;
+              overflow-y:auto">
+    <h3 style="font-size:15px;margin-bottom:16px">Travail soumis</h3>
+    <div id="modal-contenu"
+         style="font-size:13px;white-space:pre-wrap;
+                background:var(--bg-page);padding:12px;
+                border-radius:8px;margin-bottom:12px">
+    </div>
+    <div id="modal-fichier-link"></div>
+    <button type="button" class="btn btn-secondary"
+            onclick="fermerTravail()">
+      Fermer
+    </button>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function ouvrirCorrection(pk, nom, note, commentaire) {
+  document.getElementById('modal-eleve-nom').textContent = nom;
+  document.getElementById('form-correction').action =
+    '/devoirs/soumission/' + pk + '/corriger/';
+  document.getElementById('modal-note').value = note || '';
+  document.getElementById('modal-commentaire').value = commentaire || '';
+  document.getElementById('modal-correction').style.display = 'flex';
+}
+
+function fermerModal() {
+  document.getElementById('modal-correction').style.display = 'none';
+}
+
+function voirTravail(contenu, fichierUrl) {
+  document.getElementById('modal-contenu').textContent = contenu || '(Pas de texte)';
+  const lienDiv = document.getElementById('modal-fichier-link');
+  if (fichierUrl) {
+    lienDiv.innerHTML = '<a href="' + fichierUrl + '" target="_blank" class="btn btn-primary btn-sm"><i class="fas fa-download"></i> Telecharger fichier</a>';
+  } else {
+    lienDiv.innerHTML = '';
+  }
+  document.getElementById('modal-travail').style.display = 'flex';
+}
+
+function fermerTravail() {
+  document.getElementById('modal-travail').style.display = 'none';
+}
+
+document.getElementById('modal-correction').addEventListener('click', function(e) {
+  if (e.target === this) fermerModal();
+});
+document.getElementById('modal-travail').addEventListener('click', function(e) {
+  if (e.target === this) fermerTravail();
+});
+</script>
+{% endblock %}

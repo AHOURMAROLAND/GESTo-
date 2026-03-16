@@ -179,11 +179,17 @@ def detail_eleve(request, pk):
     ).select_related('parent')
     inscription_active = eleve.inscription_active
 
+    from apps.devoirs.models import SoumissionDevoir
+    soumissions_devoirs = SoumissionDevoir.objects.filter(
+        eleve=eleve
+    ).select_related('devoir', 'devoir__matiere_salle__matiere').order_by('-date_soumission')[:5]
+
     return render(request, 'students/detail_eleve.html', {
         'eleve': eleve,
         'inscriptions': inscriptions,
         'parents': parents,
         'inscription_active': inscription_active,
+        'soumissions_devoirs': soumissions_devoirs,
     })
 
 

@@ -15,5 +15,6 @@ urlpatterns = [
     path('discipline/', include('apps.discipline.urls')),
     path('messagerie/', include('apps.communication.urls')),
     path('documents/', include('apps.documents.urls')),
+    path('devoirs/', include('apps.devoirs.urls')),
     path('emploi-du-temps/', include('apps.academic.urls_edt')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

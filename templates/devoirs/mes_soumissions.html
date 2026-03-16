@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Mes soumissions{% endblock %}
+{% block page_title %}Mes soumissions{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Mes soumissions</h1></div>
+  <a href="{% url 'liste_devoirs' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Devoir</th>
+        <th>Matiere</th>
+        <th>Date soumission</th>
+        <th>Statut</th>
+        <th>Note</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in soumissions %}
+      <tr>
+        <td><strong>{{ s.devoir.titre }}</strong></td>
+        <td>{{ s.devoir.matiere_salle.matiere.nom }}</td>
+        <td>{{ s.date_soumission|date:"d/m/Y H:i" }}</td>
+        <td>
+          <span class="badge
+            {% if s.statut == 'CORRIGE' %}badge-success
+            {% elif s.statut == 'EN_RETARD' %}badge-danger
+            {% else %}badge-info{% endif %}">
+            {{ s.get_statut_display }}
+          </span>
+        </td>
+        <td>
+          {% if s.note is not None %}
+          <strong style="color:var(--primary)">
+            {{ s.note }}/{{ s.devoir.note_sur }}
+          </strong>
+          {% else %}
+          <span style="color:var(--text-muted)">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{% url 'detail_devoir' s.devoir.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-eye"></i>
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucune soumission.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
