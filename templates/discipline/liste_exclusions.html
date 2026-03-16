@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Exclusions{% endblock %}
+{% block page_title %}Demandes d'exclusion{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Demandes d'exclusion</h1>
+    <p>{{ exclusions.count }} demande(s)</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'liste_sanctions' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Sanctions
+    </a>
+    <a href="{% url 'nouvelle_exclusion' %}" class="btn btn-danger">
+      <i class="fas fa-plus"></i> Nouvelle demande
+    </a>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Eleve</th>
+        <th>Motif</th>
+        <th>Demande par</th>
+        <th>Statut</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for e in exclusions %}
+      <tr>
+        <td>{{ e.created_at|date:"d/m/Y" }}</td>
+        <td>
+          <strong>{{ e.eleve.nom_complet }}</strong>
+        </td>
+        <td style="font-size:12px">
+          {{ e.motif|truncatechars:60 }}
+        </td>
+        <td style="font-size:12px">
+          {{ e.demandee_par.nom_complet }}
+        </td>
+        <td>
+          <span class="badge
+            {% if e.statut == 'EN_ATTENTE' %}badge-warning
+            {% elif e.statut == 'APPROUVEE' %}badge-danger
+            {% else %}badge-gray{% endif %}">
+            {{ e.get_statut_display }}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'detail_exclusion' e.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-eye"></i>
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucune demande d'exclusion.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

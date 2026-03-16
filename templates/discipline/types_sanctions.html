@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Types sanctions{% endblock %}
+{% block page_title %}Types de sanctions{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Types de sanctions</h1></div>
+  <a href="{% url 'liste_sanctions' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <div class="card-header"><h5>Ajouter un type</h5></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="ajouter">
+        <div class="form-group">
+          <label class="form-label">Nom</label>
+          <input type="text" name="nom" class="form-control"
+                 placeholder="Ex: Avertissement, Blâme..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gravite</label>
+          <select name="gravite" class="form-control">
+            <option value="1">Legere</option>
+            <option value="2">Moyenne</option>
+            <option value="3">Grave</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" name="description" class="form-control">
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>Gravite</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in types %}
+        <tr>
+          <td><strong>{{ t.nom }}</strong></td>
+          <td>
+            <span class="badge
+              {% if t.gravite == 1 %}badge-info
+              {% elif t.gravite == 2 %}badge-warning
+              {% else %}badge-danger{% endif %}">
+              {{ t.get_gravite_display }}
+            </span>
+          </td>
+          <td>
+            <form method="post" style="display:inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="supprimer">
+              <input type="hidden" name="type_id" value="{{ t.pk }}">
+              <button type="submit" class="btn btn-danger btn-sm"
+                      onclick="return confirm('Supprimer ?')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" style="text-align:center;
+              color:var(--text-muted);padding:24px">
+            Aucun type. Creez les types de sanctions.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

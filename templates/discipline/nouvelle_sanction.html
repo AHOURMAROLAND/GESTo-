@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load extras %}
+{% block title %}Nouvelle sanction{% endblock %}
+{% block page_title %}Signaler une sanction{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Nouvelle sanction</h1></div>
+  <a href="{% url 'liste_sanctions' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="card" style="max-width:600px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Salle</label>
+        <select class="form-control" id="select-salle"
+                onchange="chargerEleves()">
+          <option value="">Choisir une salle...</option>
+          {% for s in salles %}
+          <option value="{{ s.pk }}">
+            {{ s.nom }} ({{ s.niveau.nom }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Eleve <span style="color:red">*</span>
+        </label>
+        <select name="eleve_id" class="form-control"
+                id="select-eleve" required>
+          <option value="">Choisissez une salle...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Type de sanction <span style="color:red">*</span>
+        </label>
+        <select name="type_sanction_id" class="form-control" required>
+          <option value="">Choisir...</option>
+          {% for t in types %}
+          <option value="{{ t.pk }}">
+            {{ t.nom }}
+            ({% if t.gravite == 1 %}Legere
+             {% elif t.gravite == 2 %}Moyenne
+             {% else %}Grave{% endif %})
+          </option>
+          {% endfor %}
+        </select>
+        {% if not types %}
+        <p style="font-size:12px;color:var(--danger);margin-top:4px">
+          Aucun type defini.
+          <a href="{% url 'liste_types_sanctions' %}">Creer des types</a>
+        </p>
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Date des faits <span style="color:red">*</span>
+        </label>
+        <input type="date" name="date_faits" class="form-control"
+               required value="{{ today }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Motif <span style="color:red">*</span>
+        </label>
+        <textarea name="motif" class="form-control" rows="3"
+                  required placeholder="Decrivez les faits..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Commentaire (optionnel)</label>
+        <input type="text" name="commentaire" class="form-control"
+               placeholder="Remarques supplementaires...">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-flag"></i> Signaler la sanction
+        </button>
+        <a href="{% url 'liste_sanctions' %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function chargerEleves() {
+  const salleId = document.getElementById('select-salle').value;
+  const select = document.getElementById('select-eleve');
+  select.innerHTML = '<option value="">Chargement...</option>';
+  if (!salleId) {
+    select.innerHTML =
+      '<option value="">Choisissez une salle...</option>';
+    return;
+  }
+  fetch(`/finance/api/eleves/?salle_id=${salleId}`)
+    .then(r => r.json())
+    .then(data => {
+      select.innerHTML =
+        '<option value="">Choisir un eleve...</option>';
+      data.eleves.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.pk;
+        opt.textContent = `${e.nom} (${e.matricule})`;
+        select.appendChild(opt);
+      });
+    });
+}
+
+// Date du jour par defaut
+document.addEventListener('DOMContentLoaded', function() {
+  const d = document.querySelector('[name="date_faits"]');
+  if (d && !d.value) {
+    d.value = new Date().toISOString().split('T')[0];
+  }
+});
+</script>
+{% endblock %}

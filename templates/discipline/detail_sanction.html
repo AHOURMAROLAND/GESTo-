@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Sanction{% endblock %}
+{% block page_title %}Detail sanction{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Sanction — {{ sanction.eleve.nom_complet }}</h1>
+    <p>
+      {{ sanction.type_sanction.nom }} —
+      {{ sanction.date_faits|date:"d/m/Y" }}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'dossier_disciplinaire' sanction.eleve.pk %}"
+       class="btn btn-secondary">
+      <i class="fas fa-folder"></i> Dossier
+    </a>
+    <a href="{% url 'liste_sanctions' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header"><h5>Informations</h5></div>
+    <div class="card-body">
+      <table class="table">
+        <tr>
+          <td style="color:var(--text-muted);width:140px">Eleve</td>
+          <td><strong>{{ sanction.eleve.nom_complet }}</strong></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Type</td>
+          <td>{{ sanction.type_sanction.nom }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Gravite</td>
+          <td>
+            <span class="badge
+              {% if sanction.type_sanction.gravite == 1 %}badge-info
+              {% elif sanction.type_sanction.gravite == 2 %}badge-warning
+              {% else %}badge-danger{% endif %}">
+              {{ sanction.type_sanction.get_gravite_display }}
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Date des faits</td>
+          <td>{{ sanction.date_faits|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Motif</td>
+          <td>{{ sanction.motif }}</td>
+        </tr>
+        {% if sanction.commentaire %}
+        <tr>
+          <td style="color:var(--text-muted)">Commentaire</td>
+          <td>{{ sanction.commentaire }}</td>
+        </tr>
+        {% endif %}
+        <tr>
+          <td style="color:var(--text-muted)">Signale par</td>
+          <td>{{ sanction.signale_par.nom_complet|default:"—" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Statut</td>
+          <td>
+            <span class="badge
+              {% if sanction.statut == 'EN_ATTENTE' %}badge-warning
+              {% elif sanction.statut == 'APPROUVEE' %}badge-success
+              {% elif sanction.statut == 'REJETEE' %}badge-danger
+              {% else %}badge-gray{% endif %}"
+              style="font-size:13px;padding:5px 12px">
+              {{ sanction.get_statut_display }}
+            </span>
+          </td>
+        </tr>
+        {% if sanction.approuve_par %}
+        <tr>
+          <td style="color:var(--text-muted)">Traite par</td>
+          <td>{{ sanction.approuve_par.nom_complet }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    {% if sanction.statut == 'EN_ATTENTE' %}
+    <div class="card">
+      <div class="card-header"><h5>Traitement</h5></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'traiter_sanction' sanction.pk %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">Commentaire (optionnel)</label>
+            <input type="text" name="commentaire" class="form-control"
+                   placeholder="Remarque du censeur/directeur...">
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button type="submit" name="action" value="approuver"
+                    class="btn btn-success">
+              <i class="fas fa-check"></i> Approuver
+            </button>
+            <button type="submit" name="action" value="rejeter"
+                    class="btn btn-danger">
+              <i class="fas fa-times"></i> Rejeter
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if sanction.statut == 'APPROUVEE' %}
+    <div class="card">
+      <div class="card-header"><h5>Actions</h5></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'traiter_sanction' sanction.pk %}">
+          {% csrf_token %}
+          <button type="submit" name="action" value="lever"
+                  class="btn btn-secondary">
+            <i class="fas fa-unlock"></i> Lever la sanction
+          </button>
+        </form>
+        <div style="margin-top:12px">
+          <a href="{% url 'nouvelle_exclusion' %}"
+             class="btn btn-danger">
+            <i class="fas fa-ban"></i> Demander exclusion
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

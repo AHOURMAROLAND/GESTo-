@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}Sanctions{% endblock %}
+{% block page_title %}Discipline{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Sanctions</h1>
+    <p>{{ total }} sanction(s)</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="{% url 'liste_exclusions' %}" class="btn btn-secondary">
+      <i class="fas fa-ban"></i> Exclusions
+    </a>
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    <a href="{% url 'liste_types_sanctions' %}" class="btn btn-secondary">
+      <i class="fas fa-list"></i> Types
+    </a>
+    {% endif %}
+    <a href="{% url 'nouvelle_sanction' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouvelle sanction
+    </a>
+  </div>
+</div>
+
+<form method="get"
+      style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <input type="text" name="q" value="{{ q }}"
+         placeholder="Rechercher eleve, motif..."
+         class="form-control" style="max-width:220px">
+  <select name="statut" class="form-control" style="max-width:180px"
+          onchange="this.form.submit()">
+    <option value="">Tous les statuts</option>
+    {% for code, label in statuts %}
+    <option value="{{ code }}"
+      {% if statut_filtre == code %}selected{% endif %}>
+      {{ label }}
+    </option>
+    {% endfor %}
+  </select>
+  <select name="salle" class="form-control" style="max-width:160px"
+          onchange="this.form.submit()">
+    <option value="">Toutes les salles</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_filtre == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }}
+    </option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary">
+    <i class="fas fa-search"></i>
+  </button>
+  <a href="{% url 'liste_sanctions' %}" class="btn btn-secondary">
+    Reinitialiser
+  </a>
+</form>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Eleve</th>
+        <th>Type sanction</th>
+        <th>Gravite</th>
+        <th>Motif</th>
+        <th>Statut</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in sanctions %}
+      <tr>
+        <td>{{ s.date_faits|date:"d/m/Y" }}</td>
+        <td>
+          <a href="{% url 'dossier_disciplinaire' s.eleve.pk %}"
+             style="color:var(--primary);text-decoration:none;font-weight:600">
+            {{ s.eleve.nom_complet }}
+          </a>
+        </td>
+        <td>{{ s.type_sanction.nom }}</td>
+        <td>
+          <span class="badge
+            {% if s.type_sanction.gravite == 1 %}badge-info
+            {% elif s.type_sanction.gravite == 2 %}badge-warning
+            {% else %}badge-danger{% endif %}">
+            {{ s.type_sanction.get_gravite_display }}
+          </span>
+        </td>
+        <td style="font-size:12px">
+          {{ s.motif|truncatechars:50 }}
+        </td>
+        <td>
+          <span class="badge
+            {% if s.statut == 'EN_ATTENTE' %}badge-warning
+            {% elif s.statut == 'APPROUVEE' %}badge-success
+            {% elif s.statut == 'REJETEE' %}badge-danger
+            {% else %}badge-gray{% endif %}">
+            {{ s.get_statut_display }}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'detail_sanction' s.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-eye"></i>
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucune sanction.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

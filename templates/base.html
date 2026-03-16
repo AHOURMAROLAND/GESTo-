@@ -77,6 +77,10 @@
           <span>Presences</span>
         </a>
         <a href="{% url 'liste_grilles' %}"
+           class="nav-item {% if '/notes/grilles/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-table"></i></span>
+          <span>Grilles</span>
+        </a>
         <a href="{% url 'liste_examens' %}"
            class="nav-item {% if '/notes/examens/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
@@ -193,7 +197,7 @@
           <span class="nav-icon"><i class="fas fa-eye"></i></span>
           <span>Presences</span>
         </a>
-        <a href="/discipline/"
+        <a href="{% url 'liste_sanctions' %}"
            class="nav-item {% if '/discipline/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-gavel"></i></span>
           <span>Discipline</span>

@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Exclusion{% endblock %}
+{% block page_title %}Demande d'exclusion{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Exclusion — {{ exclusion.eleve.nom_complet }}</h1>
+    <p>{{ exclusion.created_at|date:"d/m/Y" }}</p>
+  </div>
+  <a href="{% url 'liste_exclusions' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header"><h5>Informations</h5></div>
+    <div class="card-body">
+      <table class="table">
+        <tr>
+          <td style="color:var(--text-muted);width:140px">Eleve</td>
+          <td><strong>{{ exclusion.eleve.nom_complet }}</strong></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Motif</td>
+          <td>{{ exclusion.motif }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Demande par</td>
+          <td>{{ exclusion.demandee_par.nom_complet }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Date demande</td>
+          <td>{{ exclusion.created_at|date:"d/m/Y H:i" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Statut</td>
+          <td>
+            <span class="badge
+              {% if exclusion.statut == 'EN_ATTENTE' %}badge-warning
+              {% elif exclusion.statut == 'APPROUVEE' %}badge-danger
+              {% else %}badge-gray{% endif %}"
+              style="font-size:13px;padding:5px 12px">
+              {{ exclusion.get_statut_display }}
+            </span>
+          </td>
+        </tr>
+        {% if exclusion.traitee_par %}
+        <tr>
+          <td style="color:var(--text-muted)">Traite par</td>
+          <td>{{ exclusion.traitee_par.nom_complet }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Date traitement</td>
+          <td>{{ exclusion.traitee_at|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% endif %}
+        {% if exclusion.commentaire_directeur %}
+        <tr>
+          <td style="color:var(--text-muted)">Decision</td>
+          <td>{{ exclusion.commentaire_directeur }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  {% if request.user.role == 'DIRECTEUR' and exclusion.statut == 'EN_ATTENTE' %}
+  <div class="card">
+    <div class="card-header">
+      <h5 style="color:var(--danger)">Decision du directeur</h5>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-warning" style="margin-bottom:16px">
+        <i class="fas fa-exclamation-triangle"></i>
+        Cette action est irreversible. L'approbation entraine
+        le changement de statut de l'eleve en "Exclu".
+      </div>
+      <form method="post"
+            action="{% url 'traiter_exclusion' exclusion.pk %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Commentaire / Decision</label>
+          <textarea name="commentaire" class="form-control" rows="3"
+                    placeholder="Motif de la decision..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="submit" name="action" value="approuver"
+                  class="btn btn-danger"
+                  onclick="return confirm(
+                    'Confirmer l\'exclusion de '
+                    + '{{ exclusion.eleve.nom_complet }} ?'
+                  )">
+            <i class="fas fa-ban"></i> Approuver l'exclusion
+          </button>
+          <button type="submit" name="action" value="rejeter"
+                  class="btn btn-secondary">
+            <i class="fas fa-times"></i> Rejeter
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

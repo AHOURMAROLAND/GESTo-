@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Convocation {{ sanction.eleve.nom_complet }}{% endblock %}
+{% block page_title %}Convocation Parent{% endblock %}
+{% block content %}
+<div class="page-header no-print">
+  <div>
+    <h1>Convocation Parent</h1>
+    <p>Edition du document pour {{ sanction.eleve.nom_complet }}</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <button onclick="window.print()" class="btn btn-primary">
+      <i class="fas fa-print"></i> Imprimer
+    </button>
+    <a href="{% url 'detail_sanction' sanction.pk %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="card convocation-print" style="max-width:800px;margin: 20px auto;padding: 40px;font-family: serif;line-height: 1.6;">
+  <div style="display:flex;justify-content:space-between;margin-bottom:40px">
+    <div style="text-align:center">
+      <strong>REPUBLIQUE DU TOGO</strong><br>
+      <small>Travail - Liberté - Patrie</small><br>
+      <div style="margin-top:10px">
+        <strong>COMPLEXE SCOLAIRE<br>STE BAKHITA</strong>
+      </div>
+    </div>
+    <div style="text-align:right">
+      Lomé, le {{ today|date:"d F Y" }}
+    </div>
+  </div>
+
+  <div style="margin-bottom:40px">
+    <strong>OBJET : CONVOCATION</strong>
+  </div>
+
+  <div style="margin-bottom:30px">
+    A l'attention de M/Mme <strong>{{ parent_eleve.parent.nom_complet|default:"le parent de l'élève" }}</strong>,<br>
+    Parent/Tuteur de l'élève <strong>{{ sanction.eleve.nom_complet }}</strong> ({{ sanction.eleve.matricule }})
+  </div>
+
+  <div style="text-align:justify;margin-bottom:30px">
+    Monsieur/Madame,<br><br>
+    Nous vous prions de bien vouloir vous présenter au bureau du Censeur / Surveillant Général le <strong>____________________</strong> à <strong>__________</strong> heures pour un motif disciplinaire concernant votre enfant.<br><br>
+    En effet, votre enfant a fait l'objet d'une sanction de type <strong>"{{ sanction.type_sanction.nom }}"</strong> pour le motif suivant :<br>
+    <em>" {{ sanction.motif }} "</em><br><br>
+    Votre présence est indispensable pour discuter de la conduite de votre enfant et envisager les mesures nécessaires à son amélioration.
+  </div>
+
+  <div style="margin-bottom:60px">
+    Veuillez agréer, Monsieur/Madame, l'expression de nos salutations distinguées.
+  </div>
+
+  <div style="display:flex;justify-content:flex-end">
+    <div style="text-align:center;width:250px">
+      <strong>Le Censeur / Le Surveillant</strong><br>
+      <div style="height:100px"></div>
+      (Signature et Cachet)
+    </div>
+  </div>
+</div>
+
+<style>
+@media print {
+  .no-print { display: none !important; }
+  .layout-header, .sidebar, .footer { display: none !important; }
+  .main-content { padding: 0 !important; margin: 0 !important; }
+  .card { border: none !important; box-shadow: none !important; padding: 0 !important; }
+  body { background: white !important; }
+}
+</style>
+{% endblock %}
