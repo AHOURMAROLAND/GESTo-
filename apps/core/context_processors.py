@@ -26,12 +26,22 @@ def global_context(request):
             ).count()
     except Exception:
         taches = 0
+    
+    try:
+        from apps.preinscription.models import PreInscription
+        nb_pi = PreInscription.objects.filter(
+            statut='EN_ATTENTE'
+        ).count()
+    except Exception:
+        nb_pi = 0
+
     return {
         'annee_active': annee,
         'periode_active': periode,
         'nb_notifs': nb_notifs,
         'notifs_recentes': notifs,
         'taches_en_attente': taches,
+        'nb_preinscriptions_attente': nb_pi,
         'session_remaining': request.session.get('session_remaining', 9999),
         'session_warning': request.session.get('session_warning', False),
     }

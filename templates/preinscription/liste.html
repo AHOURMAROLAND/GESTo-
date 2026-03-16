@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% block title %}Pre-inscriptions{% endblock %}
+{% block page_title %}Pre-inscriptions{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Pre-inscriptions</h1>
+    <p>{{ total }} dossier(s)
+      {% if nb_attente > 0 %}
+      — <span style="color:var(--warning);font-weight:600">
+        {{ nb_attente }} en attente
+      </span>
+      {% endif %}
+    </p>
+  </div>
+  <a href="{% url 'formulaire_preinscription' %}"
+     class="btn btn-secondary" target="_blank">
+    <i class="fas fa-external-link-alt"></i> Voir le formulaire public
+  </a>
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:20px">
+  {% for code, label in statuts %}
+  <a href="?statut={{ code }}"
+     class="btn {% if statut_filtre == code %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
+    {{ label }}
+  </a>
+  {% endfor %}
+  <a href="?statut="
+     class="btn {% if not statut_filtre %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
+    Tous
+  </a>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Reference</th>
+        <th>Eleve</th>
+        <th>Niveau souhaite</th>
+        <th>Parent / Tel</th>
+        <th>Date</th>
+        <th>Statut</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pi in pis %}
+      <tr>
+        <td>
+          <span class="badge badge-primary">{{ pi.reference }}</span>
+        </td>
+        <td>
+          <strong>{{ pi.prenom_eleve }} {{ pi.nom_eleve }}</strong>
+          {% if pi.est_redoublant %}
+          <span class="badge badge-warning" style="font-size:10px">R</span>
+          {% endif %}
+        </td>
+        <td>{{ pi.niveau_souhaite }}</td>
+        <td style="font-size:12px">
+          {{ pi.nom_parent }} {{ pi.prenom_parent }}<br>
+          <span style="color:var(--text-muted)">
+            {{ pi.telephone_parent }}
+          </span>
+        </td>
+        <td>{{ pi.date_soumission|date:"d/m/Y" }}</td>
+        <td>
+          <span class="badge
+            {% if pi.statut == 'EN_ATTENTE' %}badge-warning
+            {% elif pi.statut == 'VALIDEE' %}badge-success
+            {% else %}badge-danger{% endif %}">
+            {{ pi.get_statut_display }}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'detail_preinscription' pi.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-eye"></i>
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucune pre-inscription.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     'apps.communication',
     'apps.documents',
     'apps.devoirs',
+    'apps.preinscription',
     'apps.core',
 ]
 

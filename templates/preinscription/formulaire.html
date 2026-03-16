@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pre-inscription — {{ config.nom }}</title>
+  <style>
+    * { box-sizing:border-box;margin:0;padding:0 }
+    body {
+      font-family:'Segoe UI',Arial,sans-serif;
+      background:linear-gradient(135deg,#1E3A8A,#1E40AF);
+      min-height:100vh;padding:30px 16px;
+    }
+    .container {
+      max-width:720px;margin:0 auto;
+      background:#fff;border-radius:16px;overflow:hidden;
+      box-shadow:0 20px 40px rgba(0,0,0,0.2);
+    }
+    .header {
+      background:#1E40AF;color:#fff;
+      padding:24px 32px;text-align:center;
+    }
+    .header h1 { font-size:22px;font-weight:700; }
+    .header p { font-size:13px;opacity:0.8;margin-top:4px; }
+    .body { padding:32px; }
+    .section-title {
+      font-size:14px;font-weight:700;color:#1E40AF;
+      margin:24px 0 12px;padding-bottom:6px;
+      border-bottom:2px solid #DBEAFE;
+    }
+    .grid-2 {
+      display:grid;grid-template-columns:1fr 1fr;gap:14px;
+    }
+    .form-group { margin-bottom:14px; }
+    label {
+      display:block;font-size:12px;font-weight:600;
+      color:#374151;margin-bottom:5px;
+    }
+    input,select,textarea {
+      width:100%;padding:10px 12px;
+      border:1.5px solid #E2E8F0;border-radius:8px;
+      font-size:13px;color:#111827;background:#FAFAFA;
+      outline:none;transition:border-color 0.2s;
+      appearance:none;
+    }
+    input:focus,select:focus,textarea:focus {
+      border-color:#1E40AF;background:#fff;
+    }
+    .required { color:#DC2626; }
+    .error-box {
+      background:#FEE2E2;color:#991B1B;border-left:4px solid #DC2626;
+      padding:12px 16px;border-radius:8px;font-size:13px;
+      margin-bottom:20px;
+    }
+    .btn-submit {
+      width:100%;padding:14px;background:#1E40AF;color:#fff;
+      border:none;border-radius:8px;font-size:15px;
+      font-weight:600;cursor:pointer;margin-top:20px;
+      transition:background 0.2s;
+    }
+    .btn-submit:hover { background:#1E3A8A; }
+    .info-box {
+      background:#EFF6FF;border:1px solid #BFDBFE;
+      border-radius:8px;padding:12px 16px;
+      font-size:12px;color:#1E40AF;margin-bottom:20px;
+    }
+    @media(max-width:600px) {
+      .grid-2 { grid-template-columns:1fr; }
+      .body { padding:20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>{{ config.nom }}</h1>
+    <p>Formulaire de pre-inscription
+      {% if annee %}— Annee {{ annee.nom }}{% endif %}
+    </p>
+  </div>
+  <div class="body">
+
+    <div class="info-box">
+      <strong>Information :</strong>
+      Ce formulaire vous permet de soumettre une demande de pre-inscription.
+      Apres validation par notre secretariat, vous recevrez les identifiants
+      de connexion par WhatsApp.
+    </div>
+
+    {% if error %}
+    <div class="error-box">{{ error }}</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div class="section-title">
+        Informations de l'eleve
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Nom <span class="required">*</span></label>
+          <input type="text" name="nom_eleve"
+                 value="{{ post.nom_eleve|default:'' }}"
+                 placeholder="NOM EN MAJUSCULES" required>
+        </div>
+        <div class="form-group">
+          <label>Prenom <span class="required">*</span></label>
+          <input type="text" name="prenom_eleve"
+                 value="{{ post.prenom_eleve|default:'' }}"
+                 placeholder="Prenom" required>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Sexe <span class="required">*</span></label>
+          <select name="sexe_eleve">
+            <option value="M">Masculin</option>
+            <option value="F">Feminin</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date de naissance</label>
+          <input type="date" name="date_naissance"
+                 value="{{ post.date_naissance|default:'' }}">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Lieu de naissance</label>
+          <input type="text" name="lieu_naissance"
+                 value="{{ post.lieu_naissance|default:'' }}"
+                 placeholder="Ville, pays">
+        </div>
+        <div class="form-group">
+          <label>Niveau souhaite <span class="required">*</span></label>
+          <select name="niveau_souhaite" required>
+            <option value="">Choisir...</option>
+            {% for n in niveaux %}
+            <option value="{{ n.nom }}"
+              {% if post.niveau_souhaite == n.nom %}selected{% endif %}>
+              {{ n.nom }}
+            </option>
+            {% endfor %}
+            <option value="Autre">Autre</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Redoublant</label>
+          <select name="est_redoublant">
+            <option value="0">Non</option>
+            <option value="1">Oui</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ancienne ecole</label>
+          <input type="text" name="ancienne_ecole"
+                 value="{{ post.ancienne_ecole|default:'' }}"
+                 placeholder="Nom de l'ecole precedente">
+        </div>
+      </div>
+
+      <div class="section-title">
+        Informations du parent / tuteur
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Nom <span class="required">*</span></label>
+          <input type="text" name="nom_parent"
+                 value="{{ post.nom_parent|default:'' }}"
+                 placeholder="NOM EN MAJUSCULES" required>
+        </div>
+        <div class="form-group">
+          <label>Prenom</label>
+          <input type="text" name="prenom_parent"
+                 value="{{ post.prenom_parent|default:'' }}"
+                 placeholder="Prenom">
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>
+            Telephone <span class="required">*</span>
+          </label>
+          <input type="tel" name="telephone_parent"
+                 value="{{ post.telephone_parent|default:'' }}"
+                 placeholder="+228XXXXXXXX" required>
+        </div>
+        <div class="form-group">
+          <label>Numero WhatsApp</label>
+          <input type="tel" name="telephone_wa_parent"
+                 value="{{ post.telephone_wa_parent|default:'' }}"
+                 placeholder="+228XXXXXXXX (si different)">
+          <div style="font-size:11px;color:#64748B;margin-top:3px">
+            Les identifiants seront envoyes sur ce numero
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email_parent"
+                 value="{{ post.email_parent|default:'' }}"
+                 placeholder="email@exemple.com">
+        </div>
+        <div class="form-group">
+          <label>Lien avec l'eleve</label>
+          <select name="lien_parent">
+            <option value="PERE">Pere</option>
+            <option value="MERE">Mere</option>
+            <option value="TUTEUR">Tuteur legal</option>
+            <option value="AUTRE">Autre</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Profession</label>
+        <input type="text" name="profession_parent"
+               value="{{ post.profession_parent|default:'' }}"
+               placeholder="Ex: Enseignant, Commercant...">
+      </div>
+
+      <div class="form-group">
+        <label>Adresse</label>
+        <input type="text" name="adresse_parent"
+               value="{{ post.adresse_parent|default:'' }}"
+               placeholder="Quartier, ville">
+      </div>
+
+      <button type="submit" class="btn-submit">
+        Soumettre la pre-inscription
+      </button>
+    </form>
+
+  </div>
+</div>
+</body>
+</html>

@@ -96,6 +96,14 @@
           <span class="nav-icon"><i class="fas fa-book-open"></i></span>
           <span>Devoirs</span>
         </a>
+        <a href="{% url 'liste_preinscriptions' %}"
+           class="nav-item {% if '/inscription/admin/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-user-plus"></i></span>
+          <span>Pre-inscriptions</span>
+          {% if nb_preinscriptions_attente > 0 %}
+          <span class="nav-badge">{{ nb_preinscriptions_attente }}</span>
+          {% endif %}
+        </a>
       </div>
       {% endif %}
 
@@ -179,6 +187,14 @@
            class="nav-item {% if '/notes/bulletins/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span>
           <span>Bulletins</span>
+        </a>
+        <a href="{% url 'liste_preinscriptions' %}"
+           class="nav-item {% if '/inscription/admin/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-user-plus"></i></span>
+          <span>Pre-inscriptions</span>
+          {% if nb_preinscriptions_attente > 0 %}
+          <span class="nav-badge">{{ nb_preinscriptions_attente }}</span>
+          {% endif %}
         </a>
       </div>
       {% endif %}

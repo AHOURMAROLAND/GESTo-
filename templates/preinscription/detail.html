@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+{% block title %}Pre-inscription {{ pi.reference }}{% endblock %}
+{% block page_title %}Detail pre-inscription{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ pi.prenom_eleve }} {{ pi.nom_eleve }}</h1>
+    <p>
+      Ref : {{ pi.reference }} —
+      {{ pi.date_soumission|date:"d/m/Y H:i" }}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <span class="badge
+      {% if pi.statut == 'EN_ATTENTE' %}badge-warning
+      {% elif pi.statut == 'VALIDEE' %}badge-success
+      {% else %}badge-danger{% endif %}"
+      style="font-size:13px;padding:7px 14px">
+      {{ pi.get_statut_display }}
+    </span>
+    <a href="{% url 'liste_preinscriptions' %}"
+       class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Infos eleve -->
+  <div class="card">
+    <div class="card-header">
+      <h5>Informations eleve</h5>
+    </div>
+    <div class="card-body">
+      <table class="table">
+        <tr>
+          <td style="color:var(--text-muted);width:140px">Nom complet</td>
+          <td>
+            <strong>{{ pi.prenom_eleve }} {{ pi.nom_eleve }}</strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Sexe</td>
+          <td>{{ pi.get_sexe_eleve_display }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Date naissance</td>
+          <td>
+            {{ pi.date_naissance|date:"d/m/Y"|default:"Non renseignee" }}
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Lieu naissance</td>
+          <td>{{ pi.lieu_naissance|default:"—" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Niveau souhaite</td>
+          <td>
+            <strong style="color:var(--primary)">
+              {{ pi.niveau_souhaite }}
+            </strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Redoublant</td>
+          <td>{% if pi.est_redoublant %}Oui{% else %}Non{% endif %}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Ancienne ecole</td>
+          <td>{{ pi.ancienne_ecole|default:"—" }}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Infos parent -->
+  <div class="card">
+    <div class="card-header">
+      <h5>Parent / Tuteur</h5>
+    </div>
+    <div class="card-body">
+      <table class="table">
+        <tr>
+          <td style="color:var(--text-muted);width:140px">Nom</td>
+          <td>
+            <strong>
+              {{ pi.prenom_parent }} {{ pi.nom_parent }}
+            </strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Lien</td>
+          <td>{{ pi.get_lien_parent_display }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Telephone</td>
+          <td>{{ pi.telephone_parent }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">WhatsApp</td>
+          <td>
+            <span style="color:var(--success)">
+              <i class="fab fa-whatsapp"></i>
+              {{ pi.telephone_wa_parent }}
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Email</td>
+          <td>{{ pi.email_parent|default:"—" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Profession</td>
+          <td>{{ pi.profession_parent|default:"—" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Adresse</td>
+          <td>{{ pi.adresse_parent|default:"—" }}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Actions si en attente -->
+{% if pi.statut == 'EN_ATTENTE' %}
+<div class="card mt-4">
+  <div class="card-header">
+    <h5>Traitement du dossier</h5>
+  </div>
+  <div class="card-body">
+
+    <div class="grid-2">
+
+      <!-- Valider -->
+      <div>
+        <h6 style="font-size:13px;font-weight:600;
+                   color:var(--success);margin-bottom:12px">
+          <i class="fas fa-check-circle"></i> Valider et creer les comptes
+        </h6>
+        {% if not annee %}
+        <div class="alert alert-warning">
+          Aucune annee active. Activez une annee d'abord.
+        </div>
+        {% else %}
+        <form method="post" action="{% url 'valider_preinscription' pi.pk %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">
+              Assigner dans la salle <span style="color:red">*</span>
+            </label>
+            <select name="salle_id" class="form-control" required>
+              <option value="">Choisir une salle...</option>
+              {% for s in salles %}
+              <option value="{{ s.pk }}">
+                {{ s.nom }} ({{ s.niveau.nom }})
+                — {{ s.effectif }}/{{ s.capacite }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="alert alert-info" style="margin-bottom:12px">
+            <i class="fab fa-whatsapp"></i>
+            Les identifiants seront envoyes par WhatsApp au
+            {{ pi.telephone_wa_parent }}.
+          </div>
+          <button type="submit" class="btn btn-success"
+                  onclick="return confirm(
+                    'Valider et creer les comptes pour '
+                    + '{{ pi.prenom_eleve }} {{ pi.nom_eleve }} ?'
+                  )">
+            <i class="fas fa-check"></i> Valider — Creer les comptes
+          </button>
+        </form>
+        {% endif %}
+      </div>
+
+      <!-- Rejeter -->
+      <div>
+        <h6 style="font-size:13px;font-weight:600;
+                   color:var(--danger);margin-bottom:12px">
+          <i class="fas fa-times-circle"></i> Rejeter le dossier
+        </h6>
+        <form method="post"
+              action="{% url 'rejeter_preinscription' pi.pk %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">Motif du rejet</label>
+            <textarea name="commentaire" class="form-control" rows="3"
+                      placeholder="Ex: Niveau complet, dossier incomplet...">
+            </textarea>
+          </div>
+          <button type="submit" class="btn btn-danger"
+                  onclick="return confirm('Rejeter ce dossier ?')">
+            <i class="fas fa-times"></i> Rejeter
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Si validee -->
+{% if pi.statut == 'VALIDEE' and pi.eleve_cree %}
+<div class="card mt-4">
+  <div class="card-header">
+    <h5 style="color:var(--success)">
+      <i class="fas fa-check-circle"></i> Dossier valide
+    </h5>
+  </div>
+  <div class="card-body">
+    <p style="font-size:13px;color:var(--text-muted)">
+      Traite par {{ pi.traitee_par.nom_complet }}
+      le {{ pi.date_traitement|date:"d/m/Y a H:i" }}
+    </p>
+    <a href="{% url 'detail_eleve' pi.eleve_cree.pk %}"
+       class="btn btn-primary" style="margin-top:12px">
+      <i class="fas fa-user-graduate"></i>
+      Voir la fiche de {{ pi.eleve_cree.nom_complet }}
+    </a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
