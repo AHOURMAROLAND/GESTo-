@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% block title %}Bulletin {{ eleve.nom_complet }}{% endblock %}
+{% block page_title %}Apercu bulletin{% endblock %}
+{% block extra_css %}
+<style>
+.bulletin-container {
+  background:#fff;border:1px solid #E2E8F0;
+  border-radius:10px;padding:24px;max-width:800px;margin:0 auto;
+}
+.bulletin-header {
+  display:grid;grid-template-columns:1fr 2fr 1fr;
+  gap:10px;align-items:center;margin-bottom:16px;
+}
+.bulletin-titre {
+  background:var(--primary);color:#fff;
+  text-align:center;padding:10px;border-radius:8px;
+  font-weight:700;font-size:16px;margin-bottom:12px;
+}
+.bulletin-infos {
+  background:#F8FAFC;border:1px solid #E2E8F0;
+  border-radius:8px;padding:12px;margin-bottom:12px;
+}
+.notes-table { width:100%;border-collapse:collapse;font-size:13px; }
+.notes-table th {
+  background:var(--primary);color:#fff;
+  padding:8px 10px;text-align:center;
+}
+.notes-table th:first-child { text-align:left; }
+.notes-table td {
+  padding:7px 10px;border-bottom:1px solid #F1F5F9;
+}
+.notes-table td:not(:first-child) { text-align:center; }
+.groupe-row td {
+  background:#334155;color:#fff;font-weight:600;
+  font-size:12px;padding:5px 10px;
+}
+.recap-box {
+  background:#F8FAFC;border:1px solid #E2E8F0;
+  border-radius:8px;padding:14px;margin-top:12px;
+}
+.moy-valeur {
+  font-size:28px;font-weight:700;text-align:center;
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Bulletin — {{ eleve.nom_complet }}</h1>
+    <p>{{ periode }} — {{ salle.nom }}</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'generer_bulletin_pdf' eleve.pk periode.pk %}"
+       class="btn btn-danger">
+      <i class="fas fa-file-pdf"></i> Telecharger PDF
+    </a>
+    <a href="{% url 'liste_bulletins_salle' salle.pk periode.pk %}"
+       class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="bulletin-container">
+
+  <!-- En-tete -->
+  <div class="bulletin-header">
+    <div style="font-size:12px;color:var(--text-muted);text-align:center">
+      Republique Togolaise<br>{{ config.devise }}
+    </div>
+    <div style="text-align:center">
+      <div style="font-size:18px;font-weight:700;color:var(--primary)">
+        {{ config.nom }}
+      </div>
+      {% if config.slogan %}
+      <div style="font-size:12px;color:var(--text-muted)">{{ config.slogan }}</div>
+      {% endif %}
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);text-align:center">
+      {{ config.ministre_tutelle }}<br>Direction regionale
+    </div>
+  </div>
+
+  <div class="bulletin-titre">
+    BULLETIN DE NOTES — {{ periode|upper }}
+  </div>
+
+  <!-- Infos eleve -->
+  <div class="bulletin-infos">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+      <div>
+        <strong>Nom et Prenoms :</strong> {{ eleve.nom_complet }}
+      </div>
+      <div>
+        <strong>Matricule :</strong> {{ eleve.matricule }}
+      </div>
+      <div>
+        <strong>Classe :</strong> {{ salle.nom }} — {{ salle.niveau.nom }}
+      </div>
+      <div>
+        <strong>Annee scolaire :</strong> {{ periode.annee.nom }}
+      </div>
+      <div>
+        <strong>Effectif :</strong> {{ moy_gen.effectif_classe }} eleve(s)
+      </div>
+      <div>
+        <strong>Parent/Tuteur :</strong>
+        {% for ep in parents %}{{ ep.parent.nom_complet }}{% if not forloop.last %}, {% endif %}{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau notes -->
+  <table class="notes-table">
+    <thead>
+      <tr>
+        <th>Matieres</th>
+        <th>Coeff</th>
+        <th>Moy. Classe</th>
+        <th>Compo</th>
+        <th>Moy. Trim</th>
+        <th>Points</th>
+        <th>Appreciation</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for gd in donnees_groupes %}
+      <tr class="groupe-row">
+        <td colspan="7">{{ gd.groupe.nom|upper }}</td>
+      </tr>
+      {% for mm in gd.matieres %}
+      <tr style="{% cycle 'background:#fff' 'background:#F8FAFC' %}">
+        <td>{{ mm.matiere_salle.matiere.nom }}</td>
+        <td>{{ mm.matiere_salle.coefficient }}</td>
+        <td>{{ mm.moyenne_classe|floatformat:2 }}</td>
+        <td>
+          {{ mm.note_composition|floatformat:2|default:"—" }}
+        </td>
+        <td>
+          <strong style="color:{% if mm.moyenne_eleve >= 10 %}var(--success){% elif mm.moyenne_eleve >= 8 %}var(--warning){% else %}var(--danger){% endif %}">
+            {{ mm.moyenne_eleve|floatformat:2 }}
+          </strong>
+        </td>
+        <td>{{ mm.points|floatformat:2 }}</td>
+        <td style="font-size:12px">{{ mm.appreciation }}</td>
+      </tr>
+      {% endfor %}
+      {% endfor %}
+
+      {% for mm in matieres_sans_groupe %}
+      <tr>
+        <td>{{ mm.matiere_salle.matiere.nom }}</td>
+        <td>{{ mm.matiere_salle.coefficient }}</td>
+        <td>{{ mm.moyenne_classe|floatformat:2 }}</td>
+        <td>{{ mm.note_composition|floatformat:2|default:"—" }}</td>
+        <td>
+          <strong style="color:{% if mm.moyenne_eleve >= 10 %}var(--success){% elif mm.moyenne_eleve >= 8 %}var(--warning){% else %}var(--danger){% endif %}">
+            {{ mm.moyenne_eleve|floatformat:2 }}
+          </strong>
+        </td>
+        <td>{{ mm.points|floatformat:2 }}</td>
+        <td style="font-size:12px">{{ mm.appreciation }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Recapitulatif -->
+  <div class="recap-box">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+      <div style="text-align:center">
+        <div class="moy-valeur" style="color:{% if moy_gen.moyenne >= 10 %}var(--success){% elif moy_gen.moyenne >= 8 %}var(--warning){% else %}var(--danger){% endif %}">
+          {{ moy_gen.moyenne|floatformat:2 }}/20
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">Moyenne generale</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:24px;font-weight:700;color:var(--primary)">
+          {{ moy_gen.rang }}/{{ moy_gen.effectif_classe }}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">Rang</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-size:16px;font-weight:700">{{ moy_gen.mention }}</div>
+        <div style="font-size:12px;color:var(--text-muted)">Mention</div>
+        {% if moy_gen.tableau_honneur %}
+        <span class="badge badge-success" style="margin-top:4px">
+          Tableau d'honneur
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;
+                gap:8px;margin-top:12px;font-size:12px;
+                color:var(--text-muted)">
+      <div>
+        Moy. classe : {{ moy_gen.moy_de_la_classe|floatformat:2 }} |
+        + forte : {{ moy_gen.moy_la_plus_forte|floatformat:2 }} |
+        + faible : {{ moy_gen.moy_la_plus_faible|floatformat:2 }}
+      </div>
+      <div>
+        Absences : {{ moy_gen.nb_absences }} |
+        Retards : {{ moy_gen.nb_retards }}
+      </div>
+    </div>
+    {% if moy_gen.appreciation_conseil %}
+    <div style="margin-top:10px;padding:8px;background:var(--primary-light);
+                border-radius:6px;font-size:12px">
+      <strong>Appreciation :</strong> {{ moy_gen.appreciation_conseil }}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Signatures -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;
+              gap:20px;margin-top:20px;text-align:center;font-size:12px">
+    <div style="border:1px solid #E2E8F0;border-radius:6px;padding:16px">
+      <div style="margin-bottom:30px">Le Titulaire de classe</div>
+      <div style="color:var(--text-muted)">(Signature)</div>
+    </div>
+    <div style="border:1px solid #E2E8F0;border-radius:6px;padding:16px">
+      <div style="margin-bottom:30px">Le Directeur</div>
+      <div style="color:var(--text-muted)">(Cachet et signature)</div>
+    </div>
+    <div style="border:1px solid #E2E8F0;border-radius:6px;padding:16px">
+      <div style="margin-bottom:30px">Parent/Tuteur</div>
+      <div style="color:var(--text-muted)">(Lu et approuve)</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

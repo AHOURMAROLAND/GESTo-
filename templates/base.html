@@ -81,6 +81,11 @@
           <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
           <span>Examens</span>
         </a>
+        <a href="{% url 'gestion_bulletins' %}"
+           class="nav-item {% if '/notes/bulletins/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span>
+          <span>Bulletins</span>
+        </a>
       </div>
       {% endif %}
 
@@ -152,6 +157,11 @@
            class="nav-item {% if '/documents/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-file"></i></span>
           <span>Documents</span>
+        </a>
+        <a href="{% url 'gestion_bulletins' %}"
+           class="nav-item {% if '/notes/bulletins/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span>
+          <span>Bulletins</span>
         </a>
       </div>
       {% endif %}

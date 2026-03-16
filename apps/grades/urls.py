@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import views_examens
+from . import views_bulletins
 
 urlpatterns = [
     # Evaluations
@@ -30,4 +31,18 @@ urlpatterns = [
          name='valider_examen'),
     path('examens/<int:pk>/supprimer/', views_examens.supprimer_examen,
          name='supprimer_examen'),
+    # Bulletins
+    path('bulletins/', views_bulletins.gestion_bulletins,
+         name='gestion_bulletins'),
+    path('bulletins/calculer/', views_bulletins.calculer_moyennes,
+         name='calculer_moyennes'),
+    path('bulletins/salle/<int:salle_pk>/periode/<int:periode_pk>/',
+         views_bulletins.liste_bulletins_salle, name='liste_bulletins_salle'),
+    path('bulletins/salle/<int:salle_pk>/periode/<int:periode_pk>/pdf/',
+         views_bulletins.generer_bulletins_salle_pdf,
+         name='generer_bulletins_salle_pdf'),
+    path('bulletins/eleve/<int:eleve_pk>/periode/<int:periode_pk>/',
+         views_bulletins.apercu_bulletin, name='apercu_bulletin'),
+    path('bulletins/eleve/<int:eleve_pk>/periode/<int:periode_pk>/pdf/',
+         views_bulletins.generer_bulletin_pdf, name='generer_bulletin_pdf'),
 ]

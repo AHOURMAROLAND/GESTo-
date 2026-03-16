@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}Bulletins {{ salle.nom }}{% endblock %}
+{% block page_title %}Bulletins — {{ salle.nom }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Bulletins — {{ salle.nom }}</h1>
+    <p>{{ periode }} — {{ moyennes.count }} bulletin(s)</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'generer_bulletins_salle_pdf' salle.pk periode.pk %}"
+       class="btn btn-danger">
+      <i class="fas fa-file-pdf"></i> PDF toute la salle
+    </a>
+    <a href="{% url 'gestion_bulletins' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Rang</th>
+        <th>Eleve</th>
+        <th>Matricule</th>
+        <th>Moyenne</th>
+        <th>Mention</th>
+        <th>Absences</th>
+        <th>Tableau honneur</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for mg in moyennes %}
+      <tr>
+        <td>
+          <strong style="font-size:16px;color:var(--primary)">
+            {{ mg.rang }}
+          </strong>
+        </td>
+        <td><strong>{{ mg.eleve.nom_complet }}</strong></td>
+        <td>
+          <span class="badge badge-gray">{{ mg.eleve.matricule }}</span>
+        </td>
+        <td>
+          <strong style="font-size:15px;
+            color:{% if mg.moyenne >= 10 %}var(--success)
+            {% elif mg.moyenne >= 8 %}var(--warning)
+            {% else %}var(--danger){% endif %}">
+            {{ mg.moyenne }}/20
+          </strong>
+        </td>
+        <td>
+          <span class="badge
+            {% if mg.moyenne >= 14 %}badge-success
+            {% elif mg.moyenne >= 10 %}badge-primary
+            {% elif mg.moyenne >= 8 %}badge-warning
+            {% else %}badge-danger{% endif %}">
+            {{ mg.mention }}
+          </span>
+        </td>
+        <td>{{ mg.nb_absences }}</td>
+        <td>
+          {% if mg.tableau_honneur %}
+          <span class="badge badge-success">
+            <i class="fas fa-star"></i> Oui
+          </span>
+          {% else %}
+          <span style="color:var(--text-muted)">—</span>
+          {% endif %}
+        </td>
+        <td style="display:flex;gap:6px">
+          <a href="{% url 'apercu_bulletin' mg.eleve.pk periode.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-eye"></i>
+          </a>
+          <a href="{% url 'generer_bulletin_pdf' mg.eleve.pk periode.pk %}"
+             class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf"></i>
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucune moyenne calculee. Lancez le calcul d'abord.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
