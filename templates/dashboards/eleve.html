@@ -1,1 +1,154 @@
-{% extends 'dashboards/default.html' %}
+{% extends 'base.html' %}
+{% block title %}Mon espace{% endblock %}
+{% block page_title %}Espace eleve{% endblock %}
+{% block extra_css %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Bonjour, {{ request.user.first_name|default:request.user.username }}</h1>
+    <p>
+      Eleve
+      {% if inscription %} — {{ inscription.salle.nom }}{% endif %}
+      {% if annee_active %} — {{ annee_active.nom }}{% endif %}
+    </p>
+  </div>
+</div>
+
+{% if moy_gen %}
+<!-- Recap periode -->
+<div class="grid-3 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon"
+         style="background:{% if moy_gen.moyenne >= 10 %}#DCFCE7
+         {% elif moy_gen.moyenne >= 8 %}#FEF9C3
+         {% else %}#FEE2E2{% endif %}">
+      <i class="fas fa-star"
+         style="color:{% if moy_gen.moyenne >= 10 %}#16A34A
+         {% elif moy_gen.moyenne >= 8 %}#D97706
+         {% else %}#DC2626{% endif %}"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value"
+           style="color:{% if moy_gen.moyenne >= 10 %}var(--success)
+           {% elif moy_gen.moyenne >= 8 %}var(--warning)
+           {% else %}var(--danger){% endif %}">
+        {{ moy_gen.moyenne|floatformat:2 }}
+      </div>
+      <div class="stat-label">Moyenne generale</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DBEAFE">
+      <i class="fas fa-trophy" style="color:#1E40AF"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">
+        {{ moy_gen.rang }}/{{ moy_gen.effectif_classe }}
+      </div>
+      <div class="stat-label">Rang dans la classe</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2">
+      <i class="fas fa-user-times" style="color:#DC2626"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ nb_absences|default:0 }}</div>
+      <div class="stat-label">Absences</div>
+    </div>
+  </div>
+</div>
+
+{% if chart_eleve_labels %}
+<div class="card mb-4">
+  <div class="card-header">
+    <h5>Mes moyennes par matiere</h5>
+  </div>
+  <div class="card-body">
+    <canvas id="chartEleve" height="200"></canvas>
+  </div>
+</div>
+{% endif %}
+
+<!-- Tableau notes -->
+{% if moy_matieres %}
+<div class="card mb-4">
+  <div class="card-header">
+    <h5>Detail par matiere</h5>
+  </div>
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Matiere</th>
+          <th>Coeff</th>
+          <th>Moyenne</th>
+          <th>Appreciation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mm in moy_matieres %}
+        <tr>
+          <td><strong>{{ mm.matiere_salle.matiere.nom }}</strong></td>
+          <td>{{ mm.matiere_salle.coefficient }}</td>
+          <td>
+            <strong style="color:{% if mm.moyenne_eleve >= 10 %}var(--success)
+            {% elif mm.moyenne_eleve >= 8 %}var(--warning)
+            {% else %}var(--danger){% endif %}">
+              {{ mm.moyenne_eleve|floatformat:2 }}
+            </strong>
+          </td>
+          <td style="font-size:12px">{{ mm.appreciation }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-chart-bar" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Aucune moyenne calculee pour cette periode.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if chart_eleve_labels %}
+<script>
+new Chart(document.getElementById('chartEleve'), {
+  type: 'bar',
+  data: {
+    labels: {{ chart_eleve_labels|safe }},
+    datasets: [{
+      label: 'Moyenne',
+      data: {{ chart_eleve_data|safe }},
+      backgroundColor: {{ chart_eleve_data|safe }}.map(
+        v => v >= 10 ? '#16A34A' : v >= 8 ? '#D97706' : '#DC2626'
+      ),
+      borderRadius: 4,
+    }],
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 20,
+        ticks: {
+          callback: v => v + '/20'
+        }
+      }
+    },
+  },
+});
+</script>
+{% endif %}
+{% endblock %}

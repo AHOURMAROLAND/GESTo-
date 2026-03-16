@@ -1,1 +1,130 @@
-{% extends 'dashboards/default.html' %}
+{% extends 'base.html' %}
+{% block title %}Mon espace{% endblock %}
+{% block page_title %}Espace parent{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Bonjour, {{ request.user.first_name|default:request.user.username }}</h1>
+    <p>Espace parent</p>
+  </div>
+</div>
+
+{% if enfants_data %}
+{% for ed in enfants_data %}
+<div class="card mb-4">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;
+                  background:var(--primary);color:#fff;
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:14px;font-weight:700">
+        {{ ed.eleve.prenom|slice:":1" }}{{ ed.eleve.nom|slice:":1" }}
+      </div>
+      <div>
+        <div style="font-weight:600">{{ ed.eleve.nom_complet }}</div>
+        <div style="font-size:12px;color:var(--text-muted)">
+          {{ ed.lien }}
+          {% if ed.salle %} — {{ ed.salle.nom }}{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="grid-3">
+
+      <div style="text-align:center;padding:12px;
+                  background:var(--bg-page);border-radius:8px">
+        <div style="font-size:28px;font-weight:700;
+                    color:{% if ed.moyenne and ed.moyenne.moyenne >= 10 %}var(--success)
+                    {% elif ed.moyenne %}var(--warning)
+                    {% else %}var(--text-muted){% endif %}">
+          {% if ed.moyenne %}
+          {{ ed.moyenne.moyenne|floatformat:2 }}
+          {% else %}—{% endif %}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+          Moyenne generale
+        </div>
+        {% if ed.moyenne %}
+        <div style="font-size:11px;color:var(--text-muted)">
+          Rang {{ ed.moyenne.rang }}/{{ ed.moyenne.effectif_classe }}
+        </div>
+        {% endif %}
+      </div>
+
+      <div style="text-align:center;padding:12px;
+                  background:var(--bg-page);border-radius:8px">
+        <div style="font-size:28px;font-weight:700;
+                    color:{% if ed.solde > 0 %}var(--danger){% else %}var(--success){% endif %}">
+          {{ ed.solde|floatformat:0 }}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+          Solde impaye (FCFA)
+        </div>
+        {% if ed.solde > 0 %}
+        <a href="{% url 'frais_eleve' ed.eleve.pk %}"
+           style="font-size:11px;color:var(--danger)">
+          Voir details
+        </a>
+        {% endif %}
+      </div>
+
+      <div style="text-align:center;padding:12px;
+                  background:var(--bg-page);border-radius:8px">
+        <div style="display:flex;gap:8px;justify-content:center;
+                    flex-wrap:wrap;margin-top:4px">
+          <a href="{% url 'frais_eleve' ed.eleve.pk %}"
+             class="btn btn-secondary btn-sm">
+            <i class="fas fa-receipt"></i> Frais
+          </a>
+          <a href="{% url 'absences_eleve' ed.eleve.pk %}"
+             class="btn btn-secondary btn-sm">
+            <i class="fas fa-clock"></i> Absences
+          </a>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:8px">
+          Acces rapide
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-child" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Aucun enfant lie a votre compte.</p>
+  <p style="font-size:12px;margin-top:8px">
+    Contactez l'administration pour lier vos enfants a votre compte.
+  </p>
+</div>
+{% endif %}
+
+<!-- Notifications recentes -->
+{% if notifs_recentes %}
+<div class="card">
+  <div class="card-header">
+    <h5>Notifications recentes</h5>
+    <a href="{% url 'liste_notifications' %}"
+       class="btn btn-secondary btn-sm">Tout voir</a>
+  </div>
+  <div class="card-body" style="padding:0">
+    {% for notif in notifs_recentes %}
+    <div style="padding:10px 16px;
+                border-bottom:1px solid var(--border-color);
+                {% if not notif.est_lue %}background:var(--primary-light){% endif %}">
+      <div style="font-size:13px;font-weight:{% if not notif.est_lue %}600{% else %}400{% endif %}">
+        {{ notif.titre }}
+      </div>
+      <div style="font-size:11px;color:var(--text-muted)">
+        {{ notif.created_at|timesince }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

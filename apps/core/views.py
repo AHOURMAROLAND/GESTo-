@@ -20,13 +20,23 @@ def role_requis(*roles):
 
 @login_required
 def dashboard(request):
-    from apps.academic.models import AnneeScolaire, Niveau, SalleClasse
+    from apps.academic.models import AnneeScolaire, Periode, SalleClasse
     from apps.students.models import Eleve, Inscription
     from apps.authentication.models import CustomUser
+    from apps.communication.models import (
+        Notification, ReunionParent, EvenementCalendrier
+    )
+    from django.utils import timezone
 
     annee = AnneeScolaire.active()
+    periode = Periode.active(annee) if annee else None
+    today = timezone.now().date()
+    user = request.user
+
     context = {
         'annee_active': annee,
+        'periode_active': periode,
+        'today': today,
         'nb_eleves': 0,
         'nb_salles': 0,
         'nb_personnel': 0,
@@ -34,40 +44,368 @@ def dashboard(request):
 
     if annee:
         context['nb_salles'] = SalleClasse.objects.filter(
-            annee=annee, est_active=True).count()
+            annee=annee, est_active=True
+        ).count()
         context['nb_eleves'] = Inscription.objects.filter(
-            annee=annee, statut='ACTIVE').count()
+            annee=annee, statut='ACTIVE'
+        ).count()
 
     context['nb_personnel'] = CustomUser.objects.filter(
         is_active=True
     ).exclude(role__in=['PARENT', 'ELEVE']).count()
 
-    # Apres le calcul nb_personnel
-    from apps.communication.models import Notification, ReunionParent, EvenementCalendrier
-    from django.utils import timezone
-
-    today = timezone.now().date()
-
     # Prochains evenements
-    prochains_evenements = EvenementCalendrier.objects.filter(
-        annee=annee,
-        date_debut__gte=today,
+    context['prochains_evenements'] = EvenementCalendrier.objects.filter(
+        annee=annee, date_debut__gte=today,
     ).order_by('date_debut')[:3] if annee else []
 
-    # Prochaine reunion
-    prochaine_reunion = ReunionParent.objects.filter(
-        annee=annee,
-        date__gte=today,
-        statut='PLANIFIEE',
+    context['prochaine_reunion'] = ReunionParent.objects.filter(
+        annee=annee, date__gte=today, statut='PLANIFIEE',
     ).order_by('date').first() if annee else None
 
-    context['prochains_evenements'] = prochains_evenements
-    context['prochaine_reunion'] = prochaine_reunion
-    context['today'] = today
+    # ── DIRECTEUR ─────────────────────────────────────────────────────────────
+    if user.role in ('DIRECTEUR', 'CENSEUR') or user.is_superuser:
+        from apps.grades.models import Evaluation
+        from apps.attendance.models import Presence
+        from apps.finance.models import Paiement, FraisEleve
+        from django.db.models import Sum
+        import json
 
-    role = request.user.role
+        # Evaluations en attente
+        context['nb_evals_attente'] = Evaluation.objects.filter(
+            statut='BROUILLON',
+            matiere_salle__salle__annee=annee,
+        ).count() if annee else 0
+
+        # Presences du jour
+        presences_today = Presence.objects.filter(
+            seance__date=today,
+            seance__matiere_salle__salle__annee=annee,
+        ) if annee else Presence.objects.none()
+
+        context['nb_presents_today'] = presences_today.filter(
+            statut='PRESENT'
+        ).count()
+        context['nb_absents_today'] = presences_today.filter(
+            statut__in=['ABSENT', 'ABSENT_JUSTIFIE']
+        ).count()
+
+        # Finance
+        context['total_recettes'] = float(
+            Paiement.objects.aggregate(t=Sum('montant'))['t'] or 0
+        )
+        if annee:
+            frais = FraisEleve.objects.filter(annee=annee)
+            total_du = float(frais.aggregate(t=Sum('montant'))['t'] or 0)
+            total_paye = float(
+                frais.aggregate(t=Sum('montant_paye'))['t'] or 0
+            )
+            context['total_impaye'] = total_du - total_paye
+            context['taux_recouvrement'] = round(
+                total_paye / total_du * 100, 1
+            ) if total_du > 0 else 0
+
+        # Graphique 1 — Presences 7 derniers jours
+        from datetime import timedelta
+        labels_presences = []
+        data_presents = []
+        data_absents = []
+        for i in range(6, -1, -1):
+            j = today - timedelta(days=i)
+            pres = Presence.objects.filter(
+                seance__date=j,
+                seance__matiere_salle__salle__annee=annee,
+            ) if annee else Presence.objects.none()
+            labels_presences.append(j.strftime('%d/%m'))
+            data_presents.append(pres.filter(statut='PRESENT').count())
+            data_absents.append(
+                pres.filter(
+                    statut__in=['ABSENT', 'ABSENT_JUSTIFIE']
+                ).count()
+            )
+        context['chart_presences_labels'] = json.dumps(labels_presences)
+        context['chart_presences_presents'] = json.dumps(data_presents)
+        context['chart_presences_absents'] = json.dumps(data_absents)
+
+        # Graphique 2 — Eleves par niveau
+        from apps.academic.models import Niveau
+        niveaux_data = []
+        niveaux_labels = []
+        for niveau in Niveau.objects.all().order_by('ordre'):
+            nb = Inscription.objects.filter(
+                salle__niveau=niveau,
+                annee=annee,
+                statut='ACTIVE',
+            ).count() if annee else 0
+            if nb > 0:
+                niveaux_labels.append(niveau.nom)
+                niveaux_data.append(nb)
+        context['chart_niveaux_labels'] = json.dumps(niveaux_labels)
+        context['chart_niveaux_data'] = json.dumps(niveaux_data)
+
+        # Graphique 3 — Statuts evaluations
+        from apps.grades.models import Evaluation
+        statuts_evals = {
+            'BROUILLON': 0, 'VALIDEE': 0,
+            'EN_SAISIE': 0, 'NOTES_SAISIES': 0,
+            'VALIDEE_FINALE': 0, 'REJETEE': 0,
+        }
+        if annee:
+            for ev in Evaluation.objects.filter(
+                matiere_salle__salle__annee=annee
+            ).values('statut'):
+                statuts_evals[ev['statut']] = (
+                    statuts_evals.get(ev['statut'], 0) + 1
+                )
+        context['chart_evals_labels'] = json.dumps([
+            'Brouillon', 'Validee', 'En saisie',
+            'Notes saisies', 'Validee finale', 'Rejetee'
+        ])
+        context['chart_evals_data'] = json.dumps(
+            list(statuts_evals.values())
+        )
+
+        # Alertes actives
+        context['alertes'] = Notification.objects.filter(
+            destinataire=user,
+            est_lue=False,
+            type='ALERTE',
+        ).order_by('-created_at')[:5]
+
+    # ── PROFESSEUR ────────────────────────────────────────────────────────────
+    elif user.role == 'PROFESSEUR':
+        from apps.academic.models import MatiereSalle
+        from apps.grades.models import Evaluation, Note
+        import json
+
+        mes_matieres = MatiereSalle.objects.filter(
+            professeur=user,
+            salle__annee=annee,
+        ).select_related('matiere', 'salle', 'salle__niveau') if annee else []
+
+        stats_matieres = []
+        for ms in mes_matieres:
+            nb_evals = Evaluation.objects.filter(
+                matiere_salle=ms,
+                statut='VALIDEE_FINALE',
+            ).count()
+            nb_evals_total = Evaluation.objects.filter(
+                matiere_salle=ms,
+            ).count()
+            taux = round(nb_evals / nb_evals_total * 100) if nb_evals_total else 0
+            stats_matieres.append({
+                'ms': ms,
+                'nb_evals': nb_evals,
+                'nb_evals_total': nb_evals_total,
+                'taux': taux,
+            })
+
+        context['stats_matieres'] = stats_matieres
+
+        # Tache en attente
+        from apps.grades.models import AutorisationSaisie
+        context['taches'] = AutorisationSaisie.objects.filter(
+            saisie_par=user,
+            est_autorisee=True,
+            notes_saisies=False,
+        ).select_related(
+            'evaluation__matiere_salle__salle',
+            'evaluation__matiere_salle__matiere',
+        )[:5]
+
+        # Graphique taux saisie par matiere
+        labels = [ms['ms'].matiere.nom for ms in stats_matieres]
+        data = [ms['taux'] for ms in stats_matieres]
+        context['chart_saisie_labels'] = json.dumps(labels)
+        context['chart_saisie_data'] = json.dumps(data)
+
+    # ── COMPTABLE ─────────────────────────────────────────────────────────────
+    elif user.role == 'COMPTABLE':
+        from apps.finance.models import Paiement, Depense, FraisEleve
+        from django.db.models import Sum
+        from datetime import timedelta
+        import json
+
+        mes_paiements = Paiement.objects.filter(recu_par=user)
+        mes_depenses = Depense.objects.filter(enregistre_par=user)
+
+        context['total_recettes'] = float(
+            mes_paiements.aggregate(t=Sum('montant'))['t'] or 0
+        )
+        context['total_depenses'] = float(
+            mes_depenses.aggregate(t=Sum('montant'))['t'] or 0
+        )
+        context['nb_paiements'] = mes_paiements.count()
+
+        # Graphique recettes 7 derniers jours
+        labels = []
+        data_rec = []
+        for i in range(6, -1, -1):
+            j = today - timedelta(days=i)
+            total = float(
+                mes_paiements.filter(
+                    date_paiement=j
+                ).aggregate(t=Sum('montant'))['t'] or 0
+            )
+            labels.append(j.strftime('%d/%m'))
+            data_rec.append(total)
+
+        context['chart_recettes_labels'] = json.dumps(labels)
+        context['chart_recettes_data'] = json.dumps(data_rec)
+
+        # Derniers paiements
+        context['derniers_paiements'] = mes_paiements.select_related(
+            'eleve', 'frais__type_frais'
+        ).order_by('-created_at')[:5]
+
+    # ── SURVEILLANT ───────────────────────────────────────────────────────────
+    elif user.role == 'SURVEILLANT':
+        from apps.attendance.models import Presence
+        from apps.discipline.models import Sanction
+        import json
+
+        presences_today = Presence.objects.filter(
+            seance__date=today,
+            seance__matiere_salle__salle__annee=annee,
+        ) if annee else Presence.objects.none()
+
+        context['nb_absents_today'] = presences_today.filter(
+            statut='ABSENT'
+        ).count()
+        context['nb_retards_today'] = presences_today.filter(
+            statut='RETARD'
+        ).count()
+        context['nb_presents_today'] = presences_today.filter(
+            statut='PRESENT'
+        ).count()
+
+        context['eleves_absents'] = presences_today.filter(
+            statut='ABSENT'
+        ).select_related(
+            'eleve', 'seance__matiere_salle__salle'
+        ).order_by('eleve__nom')[:10]
+
+        context['sanctions_attente'] = Sanction.objects.filter(
+            statut='EN_ATTENTE'
+        ).select_related('eleve', 'type_sanction').count()
+
+        # Graphique presences semaine
+        from datetime import timedelta
+        labels = []
+        data_p = []
+        data_a = []
+        for i in range(4, -1, -1):
+            j = today - timedelta(days=i)
+            pres = Presence.objects.filter(
+                seance__date=j,
+                seance__matiere_salle__salle__annee=annee,
+            ) if annee else Presence.objects.none()
+            labels.append(j.strftime('%a %d'))
+            data_p.append(pres.filter(statut='PRESENT').count())
+            data_a.append(
+                pres.filter(
+                    statut__in=['ABSENT', 'ABSENT_JUSTIFIE']
+                ).count()
+            )
+        context['chart_surv_labels'] = json.dumps(labels)
+        context['chart_surv_presents'] = json.dumps(data_p)
+        context['chart_surv_absents'] = json.dumps(data_a)
+
+    # ── PARENT ────────────────────────────────────────────────────────────────
+    elif user.role == 'PARENT':
+        from apps.students.models import EleveParent
+        from apps.grades.models import MoyenneGenerale
+        from apps.finance.models import FraisEleve
+        from django.db.models import Sum
+
+        try:
+            parent = user.profil_parent
+            enfants_liens = EleveParent.objects.filter(
+                parent=parent
+            ).select_related('eleve')
+        except Exception:
+            enfants_liens = []
+
+        enfants_data = []
+        for ep in enfants_liens:
+            eleve = ep.eleve
+            insc = eleve.inscription_active
+            moy = None
+            if insc and periode:
+                moy = MoyenneGenerale.objects.filter(
+                    eleve=eleve, periode=periode
+                ).first()
+
+            frais = FraisEleve.objects.filter(
+                eleve=eleve, annee=annee
+            ) if annee else FraisEleve.objects.none()
+            solde = float(
+                frais.aggregate(
+                    s=Sum('montant')
+                )['s'] or 0
+            ) - float(
+                frais.aggregate(
+                    s=Sum('montant_paye')
+                )['s'] or 0
+            )
+
+            enfants_data.append({
+                'eleve': eleve,
+                'inscription': insc,
+                'salle': insc.salle if insc else None,
+                'moyenne': moy,
+                'solde': solde,
+                'lien': ep.get_lien_display(),
+            })
+
+        context['enfants_data'] = enfants_data
+
+    # ── ELEVE ─────────────────────────────────────────────────────────────────
+    elif user.role == 'ELEVE':
+        from apps.grades.models import MoyenneGenerale, MoyenneMatiere
+        from apps.attendance.models import Presence
+        import json
+
+        try:
+            eleve = user.profil_eleve
+        except Exception:
+            eleve = None
+
+        if eleve:
+            context['eleve'] = eleve
+            insc = eleve.inscription_active
+            context['inscription'] = insc
+
+            if insc and periode:
+                moy_gen = MoyenneGenerale.objects.filter(
+                    eleve=eleve, periode=periode
+                ).first()
+                context['moy_gen'] = moy_gen
+
+                moy_matieres = MoyenneMatiere.objects.filter(
+                    eleve=eleve,
+                    periode=periode,
+                    matiere_salle__salle=insc.salle,
+                ).select_related(
+                    'matiere_salle__matiere'
+                ).order_by('-moyenne_eleve')
+                context['moy_matieres'] = moy_matieres
+
+                # Graphique moyennes par matiere
+                labels = [m.matiere_salle.matiere.nom for m in moy_matieres]
+                data = [float(m.moyenne_eleve) for m in moy_matieres]
+                context['chart_eleve_labels'] = json.dumps(labels)
+                context['chart_eleve_data'] = json.dumps(data)
+
+            # Absences
+            context['nb_absences'] = Presence.objects.filter(
+                eleve=eleve,
+                statut__in=['ABSENT', 'ABSENT_JUSTIFIE'],
+                seance__matiere_salle__salle__annee=annee,
+            ).count() if annee else 0
+
+    role = user.role
     template = f'dashboards/{role.lower()}.html'
-
     try:
         return render(request, template, context)
     except Exception:

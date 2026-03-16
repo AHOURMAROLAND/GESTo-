@@ -1,1 +1,139 @@
-{% extends 'dashboards/default.html' %}
+{% extends 'base.html' %}
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Mon tableau de bord{% endblock %}
+{% block extra_css %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Bonjour, {{ request.user.first_name|default:request.user.username }}</h1>
+    <p>Surveillant — {{ today|date:"d/m/Y" }}</p>
+  </div>
+  <a href="{% url 'liste_absences' %}" class="btn btn-primary">
+    <i class="fas fa-user-times"></i> Absences
+  </a>
+</div>
+
+<div class="grid-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-check" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ nb_presents_today|default:0 }}</div>
+      <div class="stat-label">Presents</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2">
+      <i class="fas fa-times" style="color:#DC2626"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ nb_absents_today|default:0 }}</div>
+      <div class="stat-label">Absents</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-clock" style="color:#D97706"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ nb_retards_today|default:0 }}</div>
+      <div class="stat-label">Retards</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FFE4E4">
+      <i class="fas fa-gavel" style="color:#991B1B"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ sanctions_attente|default:0 }}</div>
+      <div class="stat-label">Sanctions en attente</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2 mb-4">
+
+  {% if chart_surv_labels %}
+  <div class="card">
+    <div class="card-header">
+      <h5>Presences — 5 derniers jours</h5>
+    </div>
+    <div class="card-body">
+      <canvas id="chartSurv" height="200"></canvas>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-header">
+      <h5>Absents du jour</h5>
+      <a href="{% url 'liste_absences' %}"
+         class="btn btn-secondary btn-sm">Tout voir</a>
+    </div>
+    <div class="card-body" style="padding:0">
+      {% for p in eleves_absents %}
+      <div style="padding:10px 16px;
+                  border-bottom:1px solid var(--border-color);
+                  display:flex;justify-content:space-between;
+                  align-items:center">
+        <div>
+          <div style="font-size:13px;font-weight:600">
+            {{ p.eleve.nom_complet }}
+          </div>
+          <div style="font-size:11px;color:var(--text-muted)">
+            {{ p.seance.matiere_salle.salle.nom }} —
+            {{ p.seance.matiere_salle.matiere.nom }}
+          </div>
+        </div>
+        <a href="{% url 'liste_absences' %}"
+           class="btn btn-secondary btn-sm">
+          <i class="fas fa-check"></i>
+        </a>
+      </div>
+      {% empty %}
+      <div style="padding:20px;text-align:center;
+                  color:var(--text-muted);font-size:13px">
+        <i class="fas fa-check-circle" style="color:var(--success)"></i>
+        Aucun absent aujourd'hui
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if chart_surv_labels %}
+<script>
+new Chart(document.getElementById('chartSurv'), {
+  type: 'bar',
+  data: {
+    labels: {{ chart_surv_labels|safe }},
+    datasets: [
+      {
+        label: 'Presents',
+        data: {{ chart_surv_presents|safe }},
+        backgroundColor: '#16A34A',
+        borderRadius: 4,
+      },
+      {
+        label: 'Absents',
+        data: {{ chart_surv_absents|safe }},
+        backgroundColor: '#DC2626',
+        borderRadius: 4,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'bottom' } },
+    scales: { y: { beginAtZero: true } },
+  },
+});
+</script>
+{% endif %}
+{% endblock %}

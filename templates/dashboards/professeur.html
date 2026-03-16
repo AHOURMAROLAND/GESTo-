@@ -1,1 +1,139 @@
-{% extends 'dashboards/default.html' %}
+{% extends 'base.html' %}
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Mon tableau de bord{% endblock %}
+{% block extra_css %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Bonjour, {{ request.user.first_name|default:request.user.username }}</h1>
+    <p>
+      Professeur
+      {% if annee_active %} — {{ annee_active.nom }}{% endif %}
+      {% if periode_active %} — {{ periode_active }}{% endif %}
+    </p>
+  </div>
+</div>
+
+{% if taches %}
+<div class="alert alert-warning mb-4">
+  <i class="fas fa-pen"></i>
+  <strong>{{ taches.count }} tache(s) de saisie</strong> en attente.
+  <a href="{% url 'liste_evaluations' %}" style="color:inherit;font-weight:600">
+    Saisir maintenant
+  </a>
+</div>
+{% endif %}
+
+<!-- Stats matieres -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5>Mes matieres — Taux de saisie</h5>
+  </div>
+  <div class="card-body" style="padding:0">
+    {% for stat in stats_matieres %}
+    <div style="padding:14px 20px;
+                border-bottom:1px solid var(--border-color)">
+      <div style="display:flex;justify-content:space-between;
+                  align-items:center;margin-bottom:8px">
+        <div>
+          <strong style="font-size:13px">
+            {{ stat.ms.matiere.nom }}
+          </strong>
+          <span style="font-size:12px;color:var(--text-muted);
+                       margin-left:8px">
+            {{ stat.ms.salle.nom }}
+          </span>
+        </div>
+        <span style="font-size:13px;font-weight:600;
+                     color:{% if stat.taux >= 80 %}var(--success)
+                     {% elif stat.taux >= 50 %}var(--warning)
+                     {% else %}var(--danger){% endif %}">
+          {{ stat.taux }}%
+        </span>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" style="width:{{ stat.taux }}%;
+             background:{% if stat.taux >= 80 %}var(--success)
+             {% elif stat.taux >= 50 %}var(--warning)
+             {% else %}var(--danger){% endif %}">
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+        {{ stat.nb_evals }} / {{ stat.nb_evals_total }} evaluations validees
+      </div>
+    </div>
+    {% empty %}
+    <div style="padding:30px;text-align:center;color:var(--text-muted)">
+      Aucune matiere assignee.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% if chart_saisie_labels %}
+<div class="card mb-4">
+  <div class="card-header">
+    <h5>Taux de saisie par matiere</h5>
+  </div>
+  <div class="card-body">
+    <canvas id="chartSaisie" height="150"></canvas>
+  </div>
+</div>
+{% endif %}
+
+<!-- Acces rapides -->
+<div class="grid-3">
+  <a href="{% url 'nouvelle_evaluation' %}" style="text-decoration:none">
+    <div class="card card-body" style="text-align:center;cursor:pointer">
+      <i class="fas fa-plus-circle" style="font-size:24px;
+         color:var(--primary);display:block;margin-bottom:8px"></i>
+      <div style="font-weight:600;font-size:13px">
+        Nouvelle evaluation
+      </div>
+    </div>
+  </a>
+  <a href="{% url 'nouvelle_seance' %}" style="text-decoration:none">
+    <div class="card card-body" style="text-align:center;cursor:pointer">
+      <i class="fas fa-check-square" style="font-size:24px;
+         color:var(--success);display:block;margin-bottom:8px"></i>
+      <div style="font-weight:600;font-size:13px">Pointer presences</div>
+    </div>
+  </a>
+  <a href="{% url 'liste_seances' %}" style="text-decoration:none">
+    <div class="card card-body" style="text-align:center;cursor:pointer">
+      <i class="fas fa-history" style="font-size:24px;
+         color:var(--warning);display:block;margin-bottom:8px"></i>
+      <div style="font-weight:600;font-size:13px">Historique seances</div>
+    </div>
+  </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if chart_saisie_labels %}
+<script>
+new Chart(document.getElementById('chartSaisie'), {
+  type: 'bar',
+  data: {
+    labels: {{ chart_saisie_labels|safe }},
+    datasets: [{
+      label: 'Taux saisie (%)',
+      data: {{ chart_saisie_data|safe }},
+      backgroundColor: '#1E40AF',
+      borderRadius: 4,
+    }],
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, max: 100,
+           ticks: { callback: v => v + '%' } }
+    },
+  },
+});
+</script>
+{% endif %}
+{% endblock %}
