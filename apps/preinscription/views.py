@@ -250,7 +250,6 @@ def valider_preinscription(request, pk):
         nom=pi.nom_parent,
         prenom=pi.prenom_parent,
         telephone=pi.telephone_parent,
-        telephone_wa=pi.telephone_wa_parent,
         email=pi.email_parent,
         profession=pi.profession_parent,
         adresse=pi.adresse_parent,
