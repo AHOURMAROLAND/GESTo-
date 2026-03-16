@@ -76,6 +76,11 @@
           <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
           <span>Emploi du temps</span>
         </a>
+        <a href="{% url 'liste_examens' %}"
+           class="nav-item {% if '/notes/examens/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
+          <span>Examens</span>
+        </a>
       </div>
       {% endif %}
 

@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}Nouvel examen{% endblock %}
+{% block page_title %}Nouvel examen{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Nouvel examen</h1></div>
+  <a href="{% url 'liste_examens' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<form method="post" id="form-examen">
+  {% csrf_token %}
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-header"><h5>Informations generales</h5></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">
+            Titre <span style="color:red">*</span>
+          </label>
+          <input type="text" name="titre" class="form-control"
+                 placeholder="Ex: Examen blanc T1" required>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <select name="type" class="form-control">
+              {% for code, label in types %}
+              <option value="{{ code }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Periode <span style="color:red">*</span>
+            </label>
+            <select name="periode_id" class="form-control" required>
+              <option value="">Choisir...</option>
+              {% for p in periodes %}
+              <option value="{{ p.pk }}">{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">
+              Date debut <span style="color:red">*</span>
+            </label>
+            <input type="date" name="date_debut" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date fin</label>
+            <input type="date" name="date_fin" class="form-control">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h5>Cible</h5></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Type de cible</label>
+          <select name="cible" class="form-control" id="select-cible"
+                  onchange="toggleCible()">
+            {% for code, label in cibles %}
+            <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="div-niveau" class="form-group">
+          <label class="form-label">Niveau</label>
+          <select name="niveau_id" class="form-control">
+            <option value="">Choisir un niveau...</option>
+            {% for n in niveaux %}
+            <option value="{{ n.pk }}">{{ n.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="div-salle" class="form-group" style="display:none">
+          <label class="form-label">Salle specifique</label>
+          <select name="salle_id" class="form-control">
+            <option value="">Choisir une salle...</option>
+            {% for s in salles %}
+            <option value="{{ s.pk }}">
+              {{ s.nom }} ({{ s.niveau.nom }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Matieres -->
+  <div class="card" style="margin-top:16px">
+    <div class="card-header">
+      <h5>Matieres de l'examen</h5>
+      <button type="button" class="btn btn-secondary btn-sm"
+              onclick="ajouterMatiere()">
+        <i class="fas fa-plus"></i> Ajouter
+      </button>
+    </div>
+    <div class="card-body" id="matieres-container">
+      <div class="matiere-row grid-matieres"
+           style="display:grid;grid-template-columns:2fr 1fr 1fr auto;
+                  gap:10px;align-items:end;margin-bottom:10px">
+        <div>
+          <label class="form-label">Matiere</label>
+          <select name="matieres" class="form-control" required>
+            <option value="">Choisir...</option>
+            {% for m in matieres %}
+            <option value="{{ m.pk }}">{{ m.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Coefficient</label>
+          <input type="number" name="coefficients" class="form-control"
+                 value="1" min="0.5" step="0.5">
+        </div>
+        <div>
+          <label class="form-label">Note sur</label>
+          <select name="notes_sur" class="form-control">
+            <option value="20">20</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" style="visibility:hidden">-</label>
+          <button type="button" class="btn btn-danger btn-sm"
+                  onclick="retirerMatiere(this)">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;display:flex;gap:10px">
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-save"></i> Creer l'examen
+    </button>
+    <a href="{% url 'liste_examens' %}" class="btn btn-secondary">
+      Annuler
+    </a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const matieresOptions = `{% for m in matieres %}<option value="{{ m.pk }}">{{ m.nom }}</option>{% endfor %}`;
+
+function toggleCible() {
+  const cible = document.getElementById('select-cible').value;
+  document.getElementById('div-niveau').style.display =
+    cible === 'NIVEAU' ? 'block' : 'none';
+  document.getElementById('div-salle').style.display =
+    cible === 'SALLE' ? 'block' : 'none';
+}
+
+function ajouterMatiere() {
+  const container = document.getElementById('matieres-container');
+  const div = document.createElement('div');
+  div.className = 'matiere-row';
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:10px';
+  div.innerHTML = `
+    <div>
+      <select name="matieres" class="form-control" required>
+        <option value="">Choisir...</option>
+        ${matieresOptions}
+      </select>
+    </div>
+    <div>
+      <input type="number" name="coefficients" class="form-control"
+             value="1" min="0.5" step="0.5">
+    </div>
+    <div>
+      <select name="notes_sur" class="form-control">
+        <option value="20">20</option>
+        <option value="10">10</option>
+      </select>
+    </div>
+    <div>
+      <button type="button" class="btn btn-danger btn-sm"
+              onclick="retirerMatiere(this)">
+        <i class="fas fa-trash"></i>
+      </button>
+    </div>
+  `;
+  container.appendChild(div);
+}
+
+function retirerMatiere(btn) {
+  const rows = document.querySelectorAll('.matiere-row');
+  if (rows.length > 1) {
+    btn.closest('.matiere-row').remove();
+  }
+}
+</script>
+{% endblock %}

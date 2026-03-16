@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load extras %}
+{% block title %}Saisie {{ examen_matiere.matiere.nom }}{% endblock %}
+{% block page_title %}Saisie notes examen{% endblock %}
+{% block extra_css %}
+<style>
+.note-input {
+  width:80px;text-align:center;padding:6px 8px;
+  border:1.5px solid var(--border-color);border-radius:6px;
+  font-size:14px;font-weight:600;color:var(--text-main);
+  background:var(--bg-card);
+}
+.note-input:focus { border-color:var(--primary);outline:none; }
+.note-input.invalide { border-color:var(--danger);background:#FEF2F2; }
+.note-input.valide { border-color:var(--success); }
+.absent-row { background:rgba(220,38,38,0.05); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ examen.titre }}</h1>
+    <p>
+      Matiere : <strong>{{ examen_matiere.matiere.nom }}</strong> —
+      Note sur {{ examen_matiere.note_sur }}
+    </p>
+  </div>
+  <a href="{% url 'detail_examen' examen.pk %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  {% for salle_data in inscrits_par_salle %}
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-header">
+      <h5>
+        {{ salle_data.salle.nom }} —
+        {{ salle_data.salle.niveau.nom }}
+        ({{ salle_data.inscrits.count }} eleves)
+      </h5>
+    </div>
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nom complet</th>
+            <th style="width:120px;text-align:center">
+              Note /{{ examen_matiere.note_sur }}
+            </th>
+            <th style="width:80px;text-align:center">Absent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for insc in salle_data.inscrits %}
+          {% with cle=examen_matiere.pk|stringformat:"s" %}
+          {% with note=notes|get_item:insc.eleve.pk %}
+          <tr id="row-{{ insc.eleve.pk }}"
+              class="{% if note and note.est_absent %}absent-row{% endif %}">
+            <td style="color:var(--text-muted)">{{ forloop.counter }}</td>
+            <td><strong>{{ insc.eleve.nom_complet }}</strong></td>
+            <td style="text-align:center">
+              <input type="number"
+                     name="note_{{ insc.eleve.pk }}"
+                     class="note-input"
+                     id="note-{{ insc.eleve.pk }}"
+                     min="0" max="{{ examen_matiere.note_sur }}"
+                     step="0.25"
+                     value="{% if note and note.valeur is not None %}{{ note.valeur }}{% endif %}"
+                     oninput="validerNote(this, {{ examen_matiere.note_sur }})"
+                     {% if note and note.est_absent %}disabled{% endif %}>
+            </td>
+            <td style="text-align:center">
+              <input type="checkbox"
+                     name="absent_{{ insc.eleve.pk }}"
+                     id="absent-{{ insc.eleve.pk }}"
+                     value="1"
+                     {% if note and note.est_absent %}checked{% endif %}
+                     onchange="toggleAbsent({{ insc.eleve.pk }})">
+            </td>
+          </tr>
+          {% endwith %}
+          {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+
+  <div style="display:flex;gap:10px;margin-top:16px">
+    <button type="submit" class="btn btn-primary btn-lg">
+      <i class="fas fa-save"></i> Enregistrer les notes
+    </button>
+    <a href="{% url 'detail_examen' examen.pk %}" class="btn btn-secondary">
+      Annuler
+    </a>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function validerNote(input, noteMax) {
+  const val = parseFloat(input.value);
+  if (input.value === '') {
+    input.classList.remove('valide', 'invalide');
+    return;
+  }
+  if (isNaN(val) || val < 0 || val > noteMax) {
+    input.classList.add('invalide');
+    input.classList.remove('valide');
+  } else {
+    input.classList.add('valide');
+    input.classList.remove('invalide');
+  }
+}
+
+function toggleAbsent(eleveId) {
+  const cb = document.getElementById('absent-' + eleveId);
+  const input = document.getElementById('note-' + eleveId);
+  const row = document.getElementById('row-' + eleveId);
+  if (cb.checked) {
+    input.disabled = true;
+    input.value = '';
+    row.classList.add('absent-row');
+  } else {
+    input.disabled = false;
+    row.classList.remove('absent-row');
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === 'ArrowDown') {
+    const inputs = Array.from(
+      document.querySelectorAll('.note-input:not(:disabled)')
+    );
+    const idx = inputs.indexOf(document.activeElement);
+    if (idx >= 0 && idx < inputs.length - 1) {
+      e.preventDefault();
+      inputs[idx + 1].focus();
+      inputs[idx + 1].select();
+    }
+  } else if (e.key === 'ArrowUp') {
+    const inputs = Array.from(
+      document.querySelectorAll('.note-input:not(:disabled)')
+    );
+    const idx = inputs.indexOf(document.activeElement);
+    if (idx > 0) {
+      e.preventDefault();
+      inputs[idx - 1].focus();
+      inputs[idx - 1].select();
+    }
+  }
+});
+</script>
+{% endblock %}

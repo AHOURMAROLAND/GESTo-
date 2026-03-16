@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% load extras %}
+{% block title %}{{ examen.titre }}{% endblock %}
+{% block page_title %}Detail examen{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ examen.titre }}</h1>
+    <p>
+      {{ examen.get_type_display }} —
+      {{ examen.date_debut|date:"d/m/Y" }}
+      {% if examen.date_fin %} au {{ examen.date_fin|date:"d/m/Y" }}{% endif %}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    {% if examen.statut == 'PREPARATION' %}
+    <form method="post" action="{% url 'demarrer_examen' examen.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">
+        <i class="fas fa-play"></i> Demarrer
+      </button>
+    </form>
+    {% endif %}
+    {% endif %}
+    <a href="{% url 'liste_examens' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<!-- Statut -->
+<div class="card mb-4">
+  <div class="card-body">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span class="badge {{ statut_color }}" style="font-size:13px;padding:6px 14px">
+        {{ examen.get_statut_display }}
+      </span>
+      <span style="font-size:13px;color:var(--text-muted)">
+        Cible :
+        {% if examen.cible == 'NIVEAU' %}
+        Niveau {{ examen.niveau.nom }}
+        ({{ salles|length }} salle(s))
+        {% else %}
+        Salle {{ examen.salle.nom }}
+        {% endif %}
+      </span>
+      <span style="font-size:13px;color:var(--text-muted)">
+        Periode : {{ examen.periode }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Matieres et saisie -->
+  <div class="card">
+    <div class="card-header">
+      <h5>Matieres ({{ matieres_exam.count }})</h5>
+    </div>
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Matiere</th>
+            <th>Coeff</th>
+            <th>Sur</th>
+            <th>Saisisseur</th>
+            <th>Saisie</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for em in matieres_exam %}
+          <tr>
+            <td><strong>{{ em.matiere.nom }}</strong></td>
+            <td>{{ em.coefficient }}</td>
+            <td>{{ em.note_sur }}</td>
+            <td style="font-size:12px">
+              {{ em.saisie_par.nom_complet|default:"Non assigne" }}
+            </td>
+            <td>
+              {% if em.notes_saisies %}
+              <span class="badge badge-success">Saisies</span>
+              {% else %}
+              <span class="badge badge-gray">En attente</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if examen.statut in 'NOTES_EN_SAISIE EN_COURS' %}
+              {% if em.saisie_par == request.user or request.user.role in 'DIRECTEUR CENSEUR' %}
+              <a href="{% url 'saisir_notes_examen' examen.pk em.pk %}"
+                 class="btn btn-primary btn-sm">
+                <i class="fas fa-pen"></i>
+              </a>
+              {% endif %}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- Salles concernees -->
+    <div class="card">
+      <div class="card-header"><h5>Salles concernees</h5></div>
+      <div class="card-body">
+        {% for salle in salles %}
+        <span class="badge badge-primary" style="margin:2px">
+          {{ salle.nom }}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Assigner saisisseurs -->
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    {% if examen.statut in 'EN_COURS NOTES_EN_SAISIE' %}
+    <div class="card">
+      <div class="card-header"><h5>Assigner saisisseurs</h5></div>
+      <div class="card-body">
+        <form method="post"
+              action="{% url 'assigner_saisie_examen' examen.pk %}">
+          {% csrf_token %}
+          {% for em in matieres_exam %}
+          <div class="form-group">
+            <label class="form-label">{{ em.matiere.nom }}</label>
+            <select name="saisisseur_{{ em.pk }}" class="form-control">
+              <option value="">Prof de la matiere</option>
+              {% for prof in professeurs %}
+              <option value="{{ prof.pk }}"
+                {% if em.saisie_par and em.saisie_par.pk == prof.pk %}
+                selected{% endif %}>
+                {{ prof.nom_complet }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-user-check"></i> Assigner
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Valider examen -->
+    {% if examen.statut == 'NOTES_SAISIES' %}
+    <div class="card">
+      <div class="card-header"><h5>Validation finale</h5></div>
+      <div class="card-body">
+        <div style="display:flex;gap:10px">
+          <form method="post" action="{% url 'valider_examen' examen.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="valider">
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-check-double"></i> Valider
+            </button>
+          </form>
+          <form method="post" action="{% url 'valider_examen' examen.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="renvoyer">
+            <button type="submit" class="btn btn-warning">
+              <i class="fas fa-undo"></i> Renvoyer
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Supprimer -->
+    {% if examen.statut == 'PREPARATION' %}
+    <div class="card">
+      <div class="card-header">
+        <h5 style="color:var(--danger)">Zone dangereuse</h5>
+      </div>
+      <div class="card-body">
+        <form method="post"
+              action="{% url 'supprimer_examen' examen.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger"
+                  onclick="return confirm('Supprimer cet examen ?')">
+            <i class="fas fa-trash"></i> Supprimer
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% endif %}
+
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load extras %}
+{% block title %}Examens{% endblock %}
+{% block page_title %}Examens{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Examens</h1>
+    <p>{% if annee %}{{ annee.nom }}{% else %}Aucune annee active{% endif %}</p>
+  </div>
+  {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+  <a href="{% url 'nouvel_examen' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Nouvel examen
+  </a>
+  {% endif %}
+</div>
+
+<form method="get"
+      style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <select name="statut" class="form-control" style="max-width:200px"
+          onchange="this.form.submit()">
+    <option value="">Tous les statuts</option>
+    {% for code, label in statuts %}
+    <option value="{{ code }}"
+      {% if statut_filtre == code %}selected{% endif %}>
+      {{ label }}
+    </option>
+    {% endfor %}
+  </select>
+  <select name="periode" class="form-control" style="max-width:180px"
+          onchange="this.form.submit()">
+    <option value="">Toutes periodes</option>
+    {% for p in periodes %}
+    <option value="{{ p.pk }}"
+      {% if periode_filtre == p.pk|stringformat:"s" %}selected{% endif %}>
+      {{ p }}
+    </option>
+    {% endfor %}
+  </select>
+  <a href="{% url 'liste_examens' %}" class="btn btn-secondary">
+    Reinitialiser
+  </a>
+</form>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Titre</th>
+        <th>Type</th>
+        <th>Cible</th>
+        <th>Date</th>
+        <th>Periode</th>
+        <th>Matieres</th>
+        <th>Statut</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for examen in examens %}
+      <tr>
+        <td><strong>{{ examen.titre }}</strong></td>
+        <td>
+          <span class="badge badge-info">
+            {{ examen.get_type_display }}
+          </span>
+        </td>
+        <td>
+          {% if examen.cible == 'NIVEAU' %}
+          <span class="badge badge-primary">
+            {{ examen.niveau.nom|default:"Niveau" }}
+          </span>
+          {% else %}
+          <span class="badge badge-gray">
+            {{ examen.salle.nom|default:"Salle" }}
+          </span>
+          {% endif %}
+        </td>
+        <td>{{ examen.date_debut|date:"d/m/Y" }}</td>
+        <td>{{ examen.periode.libelle_court }}</td>
+        <td>{{ examen.matieres.count }}</td>
+        <td>
+          <span class="badge {{ statut_colors|get_item:examen.statut }}">
+            {{ examen.get_statut_display }}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'detail_examen' examen.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-eye"></i>
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucun examen.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
