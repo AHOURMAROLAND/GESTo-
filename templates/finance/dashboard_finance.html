@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% block title %}Finance{% endblock %}
+{% block page_title %}Tableau de bord Finance{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Finance</h1>
+    <p>{% if annee %}{{ annee.nom }}{% else %}Aucune annee active{% endif %}</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="{% url 'nouveau_paiement' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouveau paiement
+    </a>
+    <a href="{% url 'etat_recouvrement' %}" class="btn btn-secondary">
+      <i class="fas fa-chart-pie"></i> Recouvrement
+    </a>
+  </div>
+</div>
+
+{% if request.user.role in 'DIRECTEUR CENSEUR' and comptables %}
+<form method="get" style="margin-bottom:16px;display:flex;gap:10px">
+  <select name="comptable" class="form-control" style="max-width:220px"
+          onchange="this.form.submit()">
+    <option value="">Tous les comptables</option>
+    {% for c in comptables %}
+    <option value="{{ c.pk }}"
+      {% if comptable_filtre == c.pk|stringformat:"s" %}selected{% endif %}>
+      {{ c.nom_complet }}
+    </option>
+    {% endfor %}
+  </select>
+  <a href="{% url 'dashboard_finance' %}" class="btn btn-secondary">
+    Tout afficher
+  </a>
+</form>
+{% endif %}
+
+<!-- Stats -->
+<div class="grid-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-arrow-up" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="font-size:18px">
+        {{ total_recettes|floatformat:0 }}
+      </div>
+      <div class="stat-label">Recettes FCFA</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2">
+      <i class="fas fa-arrow-down" style="color:#DC2626"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="font-size:18px">
+        {{ total_depenses|floatformat:0 }}
+      </div>
+      <div class="stat-label">Depenses FCFA</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DBEAFE">
+      <i class="fas fa-wallet" style="color:#1E40AF"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="font-size:18px;
+           color:{% if solde >= 0 %}var(--success){% else %}var(--danger){% endif %}">
+        {{ solde|floatformat:0 }}
+      </div>
+      <div class="stat-label">Solde FCFA</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-exclamation-circle" style="color:#D97706"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value" style="font-size:18px;color:var(--danger)">
+        {{ total_impaye|floatformat:0 }}
+      </div>
+      <div class="stat-label">Impayes FCFA</div>
+    </div>
+  </div>
+</div>
+
+<!-- Taux de recouvrement -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5>Taux de recouvrement global</h5>
+    <span style="font-size:18px;font-weight:700;
+                 color:{% if taux_recouvrement >= 80 %}var(--success)
+                 {% elif taux_recouvrement >= 50 %}var(--warning)
+                 {% else %}var(--danger){% endif %}">
+      {{ taux_recouvrement }}%
+    </span>
+  </div>
+  <div class="card-body">
+    <div class="progress-bar-container" style="height:12px">
+      <div class="progress-bar-fill" style="width:{{ taux_recouvrement }}%;
+           background:{% if taux_recouvrement >= 80 %}var(--success)
+           {% elif taux_recouvrement >= 50 %}var(--warning)
+           {% else %}var(--danger){% endif %}">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;
+                font-size:12px;color:var(--text-muted);margin-top:8px">
+      <span>Attendu : {{ total_attendu|floatformat:0 }} FCFA</span>
+      <span>Impaye : {{ total_impaye|floatformat:0 }} FCFA</span>
+    </div>
+  </div>
+</div>
+
+<!-- Acces rapide -->
+<div class="grid-3 mb-4">
+  <a href="{% url 'liste_paiements' %}"
+     style="text-decoration:none">
+    <div class="card card-body" style="text-align:center;cursor:pointer">
+      <i class="fas fa-list" style="font-size:24px;color:var(--primary);
+         margin-bottom:8px;display:block"></i>
+      <div style="font-weight:600">Liste paiements</div>
+    </div>
+  </a>
+  <a href="{% url 'liste_depenses' %}"
+     style="text-decoration:none">
+    <div class="card card-body" style="text-align:center;cursor:pointer">
+      <i class="fas fa-receipt" style="font-size:24px;color:var(--danger);
+         margin-bottom:8px;display:block"></i>
+      <div style="font-weight:600">Depenses</div>
+    </div>
+  </a>
+  <a href="{% url 'liste_tarifs' %}"
+     style="text-decoration:none">
+    <div class="card card-body" style="text-align:center;cursor:pointer">
+      <i class="fas fa-tags" style="font-size:24px;color:var(--success);
+         margin-bottom:8px;display:block"></i>
+      <div style="font-weight:600">Tarifs</div>
+    </div>
+  </a>
+</div>
+
+<!-- Derniers paiements -->
+<div class="card">
+  <div class="card-header">
+    <h5>Derniers paiements</h5>
+    <a href="{% url 'liste_paiements' %}" class="btn btn-secondary btn-sm">
+      Tout voir
+    </a>
+  </div>
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>N° Recu</th>
+          <th>Eleve</th>
+          <th>Type frais</th>
+          <th>Montant</th>
+          <th>Moyen</th>
+          <th>Date</th>
+          <th>Recu par</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in derniers_paiements %}
+        <tr>
+          <td>
+            <span class="badge badge-primary">{{ p.numero_recu }}</span>
+          </td>
+          <td><strong>{{ p.eleve.nom_complet }}</strong></td>
+          <td>{{ p.frais.type_frais.nom }}</td>
+          <td style="color:var(--success);font-weight:600">
+            {{ p.montant|floatformat:0 }} FCFA
+          </td>
+          <td>{{ p.get_moyen_display }}</td>
+          <td>{{ p.date_paiement|date:"d/m/Y" }}</td>
+          <td style="font-size:12px">{{ p.recu_par.nom_complet }}</td>
+          <td>
+            <a href="{% url 'recu_paiement' p.pk %}"
+               class="btn btn-primary btn-sm">
+              <i class="fas fa-eye"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="8" style="text-align:center;
+              color:var(--text-muted);padding:24px">
+            Aucun paiement enregistre.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

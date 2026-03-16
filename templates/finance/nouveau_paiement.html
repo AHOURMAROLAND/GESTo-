@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% block title %}Nouveau paiement{% endblock %}
+{% block page_title %}Enregistrer un paiement{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Nouveau paiement</h1></div>
+  <a href="{% url 'dashboard_finance' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="card" style="max-width:600px">
+  <div class="card-body">
+    <form method="post" id="form-paiement">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Salle</label>
+        <select class="form-control" id="select-salle"
+                onchange="chargerEleves()">
+          <option value="">Choisir une salle...</option>
+          {% for s in salles %}
+          <option value="{{ s.pk }}">
+            {{ s.nom }} ({{ s.niveau.nom }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Eleve <span style="color:red">*</span>
+        </label>
+        <select name="eleve_id" class="form-control" id="select-eleve"
+                required onchange="chargerFrais()">
+          <option value="">Choisissez une salle d'abord...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Type de frais <span style="color:red">*</span>
+        </label>
+        <select name="frais_id" class="form-control" id="select-frais"
+                required onchange="remplirMontant()">
+          <option value="">Choisissez un eleve d'abord...</option>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">
+            Montant (FCFA) <span style="color:red">*</span>
+          </label>
+          <input type="number" name="montant" class="form-control"
+                 id="montant-input" min="1" required
+                 placeholder="0">
+          <p id="solde-info"
+             style="font-size:12px;color:var(--text-muted);margin-top:4px">
+          </p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Moyen de paiement</label>
+          <select name="moyen" class="form-control">
+            {% for code, label in moyens %}
+            <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Reference (optionnel)
+        </label>
+        <input type="text" name="reference" class="form-control"
+               placeholder="Ex: N° transaction Mobile Money">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Enregistrer et imprimer recu
+        </button>
+        <a href="{% url 'dashboard_finance' %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function chargerEleves() {
+  const salleId = document.getElementById('select-salle').value;
+  const selectEleve = document.getElementById('select-eleve');
+  const selectFrais = document.getElementById('select-frais');
+
+  selectEleve.innerHTML = '<option value="">Chargement...</option>';
+  selectFrais.innerHTML = '<option value="">Choisissez un eleve...</option>';
+  document.getElementById('solde-info').textContent = '';
+
+  if (!salleId) {
+    selectEleve.innerHTML =
+      '<option value="">Choisissez une salle d\'abord...</option>';
+    return;
+  }
+
+  fetch(`/finance/api/eleves/?salle_id=${salleId}`)
+    .then(r => r.json())
+    .then(data => {
+      selectEleve.innerHTML =
+        '<option value="">Choisir un eleve...</option>';
+      data.eleves.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.pk;
+        opt.textContent = `${e.nom} (${e.matricule})`;
+        selectEleve.appendChild(opt);
+      });
+    });
+}
+
+function chargerFrais() {
+  const eleveId = document.getElementById('select-eleve').value;
+  const selectFrais = document.getElementById('select-frais');
+  document.getElementById('solde-info').textContent = '';
+
+  if (!eleveId) {
+    selectFrais.innerHTML =
+      '<option value="">Choisissez un eleve...</option>';
+    return;
+  }
+
+  fetch(`/finance/api/frais/?eleve_id=${eleveId}`)
+    .then(r => r.json())
+    .then(data => {
+      selectFrais.innerHTML =
+        '<option value="">Choisir le type de frais...</option>';
+      data.frais.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f.pk;
+        opt.textContent =
+          `${f.nom} — Solde: ${f.solde.toLocaleString()} FCFA`;
+        opt.dataset.solde = f.solde;
+        opt.dataset.montant = f.montant;
+        selectFrais.appendChild(opt);
+      });
+    });
+}
+
+function remplirMontant() {
+  const select = document.getElementById('select-frais');
+  const opt = select.options[select.selectedIndex];
+  const solde = opt ? parseFloat(opt.dataset.solde || 0) : 0;
+  const montant = opt ? parseFloat(opt.dataset.montant || 0) : 0;
+
+  document.getElementById('montant-input').value =
+    solde > 0 ? solde : '';
+  document.getElementById('solde-info').textContent =
+    solde > 0
+      ? `Solde restant : ${solde.toLocaleString()} FCFA`
+      : solde === 0 ? 'Deja paye entierement' : '';
+}
+</script>
+{% endblock %}

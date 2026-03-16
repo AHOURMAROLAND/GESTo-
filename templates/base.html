@@ -94,7 +94,7 @@
       {% if request.user.role == 'DIRECTEUR' %}
       <div class="sidebar-section">
         <div class="sidebar-section-label">Direction</div>
-        <a href="/finance/"
+        <a href="{% url 'dashboard_finance' %}"
            class="nav-item {% if '/finance/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
           <span>Finance</span>
@@ -171,10 +171,10 @@
       {% if request.user.role == 'COMPTABLE' %}
       <div class="sidebar-section">
         <div class="sidebar-section-label">Finance</div>
-        <a href="/finance/"
+        <a href="{% url 'dashboard_finance' %}"
            class="nav-item {% if '/finance/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
-          <span>Paiements</span>
+          <span>Finance</span>
         </a>
         <a href="{% url 'liste_eleves' %}"
            class="nav-item {% if '/eleves/' in request.path %}active{% endif %}">

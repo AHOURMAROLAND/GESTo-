@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}Collectes{% endblock %}
+{% block page_title %}Types de collectes{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Collectes</h1>
+    <p>{{ collectes.count }} collecte(s) active(s)</p>
+  </div>
+  <a href="{% url 'nouvelle_collecte' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Nouvelle collecte
+  </a>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>Montant</th>
+        <th>Cible</th>
+        <th>Description</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in collectes %}
+      <tr>
+        <td><strong>{{ c.nom }}</strong></td>
+        <td style="color:var(--primary);font-weight:600">{{ c.montant|floatformat:0 }} FCFA</td>
+        <td>{{ c.get_cible_display }} {% if c.niveau %}({{ c.niveau.nom }}){% elif c.salle %}({{ c.salle.nom }}){% endif %}</td>
+        <td>{{ c.description|truncatechars:100 }}</td>
+        <td>
+           <button class="btn btn-secondary btn-sm" disabled><i class="fas fa-edit"></i></button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">
+          Aucune collecte active.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

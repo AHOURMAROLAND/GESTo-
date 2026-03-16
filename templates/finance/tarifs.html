@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Tarifs{% endblock %}
+{% block page_title %}Tarifs par niveau{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Tarifs scolaires</h1></div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'init_types_frais' %}" class="btn btn-secondary" onclick="return confirm('Initialiser les types de frais par defaut ?')">
+        Initialiser Types
+    </a>
+    <a href="{% url 'dashboard_finance' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header"><h5>Definir un tarif</h5></div>
+    <div class="card-body">
+      <form method="post" action="{% url 'creer_tarif' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Niveau</label>
+          <select name="niveau_id" class="form-control" required>
+            <option value="">Choisir...</option>
+            {% for n in niveaux %}
+            <option value="{{ n.pk }}">{{ n.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Frais inscription (FCFA)</label>
+          <input type="number" name="frais_inscription"
+                 class="form-control" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Frais scolarite (FCFA)</label>
+          <input type="number" name="frais_scolarite"
+                 class="form-control" value="0" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Frais examen (FCFA)</label>
+          <input type="number" name="frais_examen"
+                 class="form-control" value="0" min="0">
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Niveau</th>
+          <th>Inscription</th>
+          <th>Scolarite</th>
+          <th>Examen</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tarifs %}
+        <tr>
+          <td><strong>{{ t.niveau.nom }}</strong></td>
+          <td>{{ t.frais_inscription|floatformat:0 }}</td>
+          <td>{{ t.frais_scolarite|floatformat:0 }}</td>
+          <td>{{ t.frais_examen|floatformat:0 }}</td>
+          <td>
+            <strong style="color:var(--primary)">
+              {{ t.total|floatformat:0 }} FCFA
+            </strong>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" style="text-align:center;
+              color:var(--text-muted);padding:24px">
+            Aucun tarif defini.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

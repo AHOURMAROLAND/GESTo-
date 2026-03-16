@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Nouvelle collecte{% endblock %}
+{% block page_title %}Creer une collecte{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Nouvelle collecte personnalisee</h1></div>
+  <a href="{% url 'liste_collectes' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="card" style="max-width:600px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Nom de la collecte <span style="color:red">*</span></label>
+        <input type="text" name="nom" class="form-control" placeholder="Ex: Frais de kermesse, T-shirt..." required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Montant (FCFA) <span style="color:red">*</span></label>
+        <input type="number" name="montant" class="form-control" min="1" required placeholder="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="3"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Public cible</label>
+        <select name="cible" class="form-control" id="select-cible" onchange="toggleCibleFields()">
+          {% for code, label in cibles %}
+          <option value="{{ code }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="form-group" id="field-niveau" style="display:none">
+        <label class="form-label">Niveau</label>
+        <select name="niveau_id" class="form-control">
+          <option value="">Tous les niveaux</option>
+          {% for n in niveaux %}
+          <option value="{{ n.pk }}">{{ n.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" id="field-salle" style="display:none">
+        <label class="form-label">Salle de classe</label>
+        <select name="salle_id" class="form-control">
+          <option value="">Toutes les salles</option>
+          {% for s in salles %}
+          <option value="{{ s.pk }}">{{ s.nom }} ({{ s.niveau.nom }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Creer la collecte
+        </button>
+        <a href="{% url 'liste_collectes' %}" class="btn btn-secondary">Annuler</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleCibleFields() {
+  const cible = document.getElementById('select-cible').value;
+  document.getElementById('field-niveau').style.display = (cible === 'NIVEAU') ? 'block' : 'none';
+  document.getElementById('field-salle').style.display = (cible === 'SALLE') ? 'block' : 'none';
+}
+</script>
+{% endblock %}

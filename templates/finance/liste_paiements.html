@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Paiements{% endblock %}
+{% block page_title %}Liste des paiements{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Paiements</h1>
+    <p>{{ paiements.count }} paiement(s)</p>
+  </div>
+  <a href="{% url 'nouveau_paiement' %}" class="btn btn-primary">
+    <i class="fas fa-plus"></i> Nouveau paiement
+  </a>
+</div>
+
+<form method="get"
+      style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <select name="salle" class="form-control" style="max-width:200px"
+          onchange="this.form.submit()">
+    <option value="">Toutes les salles</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_filtre == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }}
+    </option>
+    {% endfor %}
+  </select>
+  <input type="date" name="date" value="{{ date_filtre }}"
+         class="form-control" style="max-width:180px">
+  <button type="submit" class="btn btn-primary">
+    <i class="fas fa-search"></i>
+  </button>
+  <a href="{% url 'liste_paiements' %}" class="btn btn-secondary">
+    Reinitialiser
+  </a>
+</form>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>N° Recu</th>
+        <th>Eleve</th>
+        <th>Type frais</th>
+        <th>Montant</th>
+        <th>Moyen</th>
+        <th>Date</th>
+        <th>Comptable</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in paiements %}
+      <tr>
+        <td>
+          <span class="badge badge-primary">{{ p.numero_recu }}</span>
+        </td>
+        <td>
+          <a href="{% url 'frais_eleve' p.eleve.pk %}"
+             style="color:var(--primary);text-decoration:none;
+                    font-weight:600">
+            {{ p.eleve.nom_complet }}
+          </a>
+        </td>
+        <td>{{ p.frais.type_frais.nom }}</td>
+        <td style="color:var(--success);font-weight:600">
+          {{ p.montant|floatformat:0 }} FCFA
+        </td>
+        <td>{{ p.get_moyen_display }}</td>
+        <td>{{ p.date_paiement|date:"d/m/Y" }}</td>
+        <td style="font-size:12px">{{ p.recu_par.nom_complet }}</td>
+        <td>
+          <a href="{% url 'recu_paiement' p.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-eye"></i>
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="8" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucun paiement.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

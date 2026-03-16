@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% block title %}Frais {{ eleve.nom_complet }}{% endblock %}
+{% block page_title %}Compte eleve{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ eleve.nom_complet }}</h1>
+    <p>{{ eleve.matricule }} — Releve de compte</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'nouveau_paiement' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Paiement
+    </a>
+    <a href="{% url 'detail_eleve' eleve.pk %}" class="btn btn-secondary">
+      <i class="fas fa-user"></i> Fiche eleve
+    </a>
+  </div>
+</div>
+
+<!-- Solde global -->
+<div class="grid-3 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2">
+      <i class="fas fa-file-invoice" style="color:#DC2626"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ total_du|floatformat:0 }}</div>
+      <div class="stat-label">Total du (FCFA)</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-check" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ total_paye|floatformat:0 }}</div>
+      <div class="stat-label">Total paye (FCFA)</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon"
+         style="background:{% if solde > 0 %}#FEF9C3{% else %}#DCFCE7{% endif %}">
+      <i class="fas fa-wallet"
+         style="color:{% if solde > 0 %}#D97706{% else %}#16A34A{% endif %}"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value"
+           style="color:{% if solde > 0 %}var(--danger){% else %}var(--success){% endif %}">
+        {{ solde|floatformat:0 }}
+      </div>
+      <div class="stat-label">Solde restant (FCFA)</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Frais -->
+  <div class="card">
+    <div class="card-header"><h5>Frais scolaires</h5></div>
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Montant</th>
+            <th>Paye</th>
+            <th>Solde</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in frais %}
+          <tr>
+            <td>{{ f.type_frais.nom }}</td>
+            <td>{{ f.montant|floatformat:0 }}</td>
+            <td style="color:var(--success)">
+              {{ f.montant_paye|floatformat:0 }}
+            </td>
+            <td style="color:{% if f.solde > 0 %}var(--danger){% else %}var(--success){% endif %};font-weight:600">
+              {{ f.solde|floatformat:0 }}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" style="text-align:center;
+                color:var(--text-muted);padding:20px">
+              Aucun frais enregistre.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Historique paiements -->
+  <div class="card">
+    <div class="card-header"><h5>Historique paiements</h5></div>
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>N° Recu</th>
+            <th>Montant</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in paiements %}
+          <tr>
+            <td>
+              <span class="badge badge-primary">
+                {{ p.numero_recu }}
+              </span>
+            </td>
+            <td style="color:var(--success);font-weight:600">
+              {{ p.montant|floatformat:0 }} FCFA
+            </td>
+            <td>{{ p.date_paiement|date:"d/m/Y" }}</td>
+            <td>
+              <a href="{% url 'recu_paiement' p.pk %}"
+                 class="btn btn-primary btn-sm">
+                <i class="fas fa-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" style="text-align:center;
+                color:var(--text-muted);padding:20px">
+              Aucun paiement.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Recouvrement{% endblock %}
+{% block page_title %}Etat du recouvrement{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Etat du recouvrement</h1></div>
+  <a href="{% url 'dashboard_finance' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<form method="get"
+      style="display:flex;gap:10px;margin-bottom:20px">
+  <select name="salle" class="form-control" style="max-width:200px"
+          onchange="this.form.submit()">
+    <option value="">Toutes les salles</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_filtre == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }}
+    </option>
+    {% endfor %}
+  </select>
+  <a href="{% url 'etat_recouvrement' %}" class="btn btn-secondary">
+    Tout afficher
+  </a>
+</form>
+
+{% for ligne in rapport %}
+<div class="card mb-4">
+  <div class="card-header">
+    <h5>{{ ligne.salle.nom }} — {{ ligne.salle.niveau.nom }}</h5>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:16px;font-weight:700;
+                   color:{% if ligne.taux >= 80 %}var(--success)
+                   {% elif ligne.taux >= 50 %}var(--warning)
+                   {% else %}var(--danger){% endif %}">
+        {{ ligne.taux }}%
+      </span>
+      <div class="progress-bar-container" style="width:120px">
+        <div class="progress-bar-fill" style="width:{{ ligne.taux }}%;
+             background:{% if ligne.taux >= 80 %}var(--success)
+             {% elif ligne.taux >= 50 %}var(--warning)
+             {% else %}var(--danger){% endif %}">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);
+                gap:16px;margin-bottom:16px;font-size:13px">
+      <div>
+        <span style="color:var(--text-muted)">Attendu :</span>
+        <strong>{{ ligne.total_du|floatformat:0 }} FCFA</strong>
+      </div>
+      <div>
+        <span style="color:var(--text-muted)">Paye :</span>
+        <strong style="color:var(--success)">
+          {{ ligne.total_paye|floatformat:0 }} FCFA
+        </strong>
+      </div>
+      <div>
+        <span style="color:var(--text-muted)">Impaye :</span>
+        <strong style="color:var(--danger)">
+          {{ ligne.total_impaye|floatformat:0 }} FCFA
+        </strong>
+      </div>
+    </div>
+
+    {% if ligne.debiteurs %}
+    <details>
+      <summary style="cursor:pointer;font-size:13px;font-weight:600;
+                      color:var(--danger)">
+        {{ ligne.nb_debiteurs }} debiteur(s) — Cliquer pour voir
+      </summary>
+      <table class="table" style="margin-top:10px">
+        <thead>
+          <tr>
+            <th>Eleve</th>
+            <th>Du</th>
+            <th>Paye</th>
+            <th>Solde</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in ligne.debiteurs %}
+          <tr>
+            <td><strong>{{ d.eleve.nom_complet }}</strong></td>
+            <td>{{ d.du|floatformat:0 }} FCFA</td>
+            <td style="color:var(--success)">
+              {{ d.paye|floatformat:0 }} FCFA
+            </td>
+            <td style="color:var(--danger);font-weight:600">
+              {{ d.solde|floatformat:0 }} FCFA
+            </td>
+            <td>
+              <a href="{% url 'frais_eleve' d.eleve.pk %}"
+                 class="btn btn-primary btn-sm">
+                Voir
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </details>
+    {% else %}
+    <div style="color:var(--success);font-size:13px">
+      <i class="fas fa-check-circle"></i> Tous les eleves ont paye.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% empty %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted)">
+  Aucune donnee de recouvrement.
+</div>
+{% endfor %}
+{% endblock %}
