@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% block title %}Ajouter parent{% endblock %}
+{% block page_title %}Ajouter un parent{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Ajouter un parent</h1>
+    <p>Eleve : <strong>{{ eleve.nom_complet }}</strong></p>
+  </div>
+  <a href="{% url 'detail_eleve' eleve.pk %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="grid-2">
+
+  <!-- Nouveau parent -->
+  <div class="card">
+    <div class="card-header">
+      <h5>Creer un nouveau parent</h5>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="nouveau">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">
+              Nom <span style="color:red">*</span>
+            </label>
+            <input type="text" name="nom" class="form-control"
+                   placeholder="NOM" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prenom</label>
+            <input type="text" name="prenom" class="form-control"
+                   placeholder="Prenom">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telephone</label>
+          <input type="text" name="telephone" class="form-control"
+                 placeholder="+228XXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            Numero WhatsApp
+            <span id="wa-status" style="font-size:11px;margin-left:8px"></span>
+          </label>
+          <div style="display:flex;gap:8px">
+            <input type="text" name="telephone_wa" id="wa-input"
+                   class="form-control"
+                   placeholder="+228XXXXXXXX">
+            <button type="button" class="btn btn-secondary"
+                    onclick="verifierWA()">
+              Verifier
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Profession</label>
+          <input type="text" name="profession" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adresse</label>
+          <input type="text" name="adresse" class="form-control">
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Lien avec l'eleve</label>
+            <select name="lien" class="form-control">
+              {% for code, label in liens %}
+              <option value="{{ code }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Langue</label>
+            <select name="langue" class="form-control">
+              {% for code, label in langues %}
+              <option value="{{ code }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact principal</label>
+          <select name="est_principal" class="form-control">
+            <option value="1">Oui</option>
+            <option value="0">Non</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Creer et lier
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Lier parent existant -->
+  <div class="card">
+    <div class="card-header">
+      <h5>Lier un parent existant</h5>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="lier">
+        <div class="form-group">
+          <label class="form-label">Choisir un parent</label>
+          <select name="parent_id" class="form-control">
+            <option value="">Rechercher...</option>
+            {% for p in parents_existants %}
+            <option value="{{ p.pk }}">
+              {{ p.nom_complet }}
+              {% if p.telephone %} — {{ p.telephone }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lien</label>
+          <select name="lien" class="form-control">
+            {% for code, label in liens %}
+            <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact principal</label>
+          <select name="est_principal" class="form-control">
+            <option value="0">Non</option>
+            <option value="1">Oui</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-link"></i> Lier ce parent
+        </button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function verifierWA() {
+  const numero = document.getElementById('wa-input').value.trim();
+  const status = document.getElementById('wa-status');
+  if (!numero) {
+    status.textContent = 'Entrez un numero';
+    status.style.color = 'var(--danger)';
+    return;
+  }
+  status.textContent = 'Verification...';
+  status.style.color = 'var(--text-muted)';
+  fetch(`/eleves/api/verifier-wa/?numero=${encodeURIComponent(numero)}`)
+    .then(r => r.json())
+    .then(data => {
+      status.textContent = data.message;
+      status.style.color = data.valide
+        ? 'var(--success)' : 'var(--danger)';
+      const input = document.getElementById('wa-input');
+      input.style.borderColor = data.valide
+        ? 'var(--success)' : 'var(--danger)';
+    })
+    .catch(() => {
+      status.textContent = 'Erreur reseau';
+      status.style.color = 'var(--danger)';
+    });
+}
+</script>
+{% endblock %}

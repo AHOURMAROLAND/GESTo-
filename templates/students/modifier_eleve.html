@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Modifier {{ eleve.nom_complet }}{% endblock %}
+{% block page_title %}Modifier fiche eleve{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Modifier — {{ eleve.nom_complet }}</h1></div>
+  <a href="{% url 'detail_eleve' eleve.pk %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="card" style="max-width:700px">
+    <div class="card-body">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Nom</label>
+          <input type="text" name="nom" class="form-control"
+                 value="{{ eleve.nom }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prenom</label>
+          <input type="text" name="prenom" class="form-control"
+                 value="{{ eleve.prenom }}" required>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Sexe</label>
+          <select name="sexe" class="form-control">
+            <option value="M" {% if eleve.sexe == 'M' %}selected{% endif %}>
+              Masculin
+            </option>
+            <option value="F" {% if eleve.sexe == 'F' %}selected{% endif %}>
+              Feminin
+            </option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Statut</label>
+          <select name="statut" class="form-control">
+            {% for code, label in eleve._meta.get_field('statut').choices %}
+            <option value="{{ code }}"
+              {% if eleve.statut == code %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Date naissance</label>
+          <input type="date" name="date_naissance" class="form-control"
+                 value="{{ eleve.date_naissance|date:'Y-m-d'|default:'' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lieu naissance</label>
+          <input type="text" name="lieu_naissance" class="form-control"
+                 value="{{ eleve.lieu_naissance }}">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Groupe sanguin</label>
+          <input type="text" name="groupe_sanguin" class="form-control"
+                 value="{{ eleve.groupe_sanguin }}"
+                 placeholder="A+, O-, B+...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Redoublant</label>
+          <select name="redoublant" class="form-control">
+            <option value="0"
+              {% if not eleve.redoublant %}selected{% endif %}>Non</option>
+            <option value="1"
+              {% if eleve.redoublant %}selected{% endif %}>Oui</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Allergies / Informations medicales</label>
+        <textarea name="allergies" class="form-control" rows="2">
+          {{ eleve.allergies }}</textarea>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Contact urgence</label>
+          <input type="text" name="contact_urgence" class="form-control"
+                 value="{{ eleve.contact_urgence }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telephone urgence</label>
+          <input type="text" name="telephone_urgence" class="form-control"
+                 value="{{ eleve.telephone_urgence }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Photo</label>
+        <input type="file" name="photo" class="form-control" accept="image/*">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+        <a href="{% url 'detail_eleve' eleve.pk %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

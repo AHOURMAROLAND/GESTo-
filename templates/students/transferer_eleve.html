@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Transferer {{ eleve.nom_complet }}{% endblock %}
+{% block page_title %}Transfert de classe{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Transferer — {{ eleve.nom_complet }}</h1>
+    <p>
+      Classe actuelle :
+      <strong>
+        {{ inscription.salle.nom|default:"Non inscrit" }}
+      </strong>
+    </p>
+  </div>
+  <a href="{% url 'detail_eleve' eleve.pk %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+<div class="card" style="max-width:460px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Nouvelle salle</label>
+        <select name="salle_id" class="form-control" required>
+          <option value="">Choisir une salle...</option>
+          {% for s in salles %}
+          <option value="{{ s.pk }}"
+            {% if inscription and inscription.salle.pk == s.pk %}
+            disabled{% endif %}>
+            {{ s.nom }} — {{ s.niveau.nom }}
+            ({{ s.effectif }}/{{ s.capacite }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        Le transfert modifie la salle active. Les notes et presences
+        enregistrees restent liees a l'ancienne salle.
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-exchange-alt"></i> Confirmer le transfert
+        </button>
+        <a href="{% url 'detail_eleve' eleve.pk %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

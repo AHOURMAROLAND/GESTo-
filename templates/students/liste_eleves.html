@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% block title %}Eleves{% endblock %}
+{% block page_title %}Eleves{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Eleves inscrits</h1>
+    <p>
+      {% if annee %}{{ annee.nom }} —
+      {{ total }} eleve(s){% else %}Aucune annee active{% endif %}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    {% if annee %}
+    <a href="{% url 'export_eleves_excel' %}{% if salle_filtre %}?salle={{ salle_filtre }}{% endif %}"
+       class="btn btn-secondary">
+      <i class="fas fa-file-excel"></i> Export Excel
+    </a>
+    {% endif %}
+    {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+    <a href="{% url 'nouvel_eleve' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouvel eleve
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% if not annee %}
+<div class="alert alert-warning">
+  <i class="fas fa-exclamation-triangle"></i>
+  Aucune annee active.
+</div>
+{% else %}
+
+<form method="get" style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <input type="text" name="q" value="{{ q }}"
+         placeholder="Rechercher nom, prenom, matricule..."
+         class="form-control" style="max-width:260px">
+  <select name="salle" class="form-control" style="max-width:180px"
+          onchange="this.form.submit()">
+    <option value="">Toutes les salles</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_filtre == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }} ({{ s.niveau.nom }})
+    </option>
+    {% endfor %}
+  </select>
+  <select name="statut" class="form-control" style="max-width:150px"
+          onchange="this.form.submit()">
+    <option value="ACTIVE"
+      {% if statut_filtre == 'ACTIVE' %}selected{% endif %}>Actifs</option>
+    <option value=""
+      {% if statut_filtre == '' %}selected{% endif %}>Tous</option>
+    <option value="TRANSFEREE"
+      {% if statut_filtre == 'TRANSFEREE' %}selected{% endif %}>
+      Transferes
+    </option>
+  </select>
+  <button type="submit" class="btn btn-primary">
+    <i class="fas fa-search"></i>
+  </button>
+  {% if q or salle_filtre %}
+  <a href="{% url 'liste_eleves' %}" class="btn btn-secondary">
+    Reinitialiser
+  </a>
+  {% endif %}
+</form>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Matricule</th>
+        <th>Nom complet</th>
+        <th>Sexe</th>
+        <th>Salle</th>
+        <th>Niveau</th>
+        <th>Statut</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for insc in inscriptions %}
+      <tr>
+        <td>
+          <span class="badge badge-gray">{{ insc.eleve.matricule }}</span>
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:32px;height:32px;border-radius:50%;
+                        background:var(--primary);color:#fff;
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:12px;font-weight:700;flex-shrink:0">
+              {{ insc.eleve.prenom|slice:":1" }}{{ insc.eleve.nom|slice:":1" }}
+            </div>
+            <div>
+              <div style="font-weight:600">{{ insc.eleve.nom_complet }}</div>
+              {% if insc.eleve.redoublant %}
+              <span class="badge badge-warning" style="font-size:10px">
+                Redoublant
+              </span>
+              {% endif %}
+            </div>
+          </div>
+        </td>
+        <td>
+          <span class="badge {% if insc.eleve.sexe == 'M' %}badge-info{% else %}badge-pink{% endif %}">
+            {{ insc.eleve.get_sexe_display }}
+          </span>
+        </td>
+        <td><strong>{{ insc.salle.nom }}</strong></td>
+        <td>{{ insc.salle.niveau.nom }}</td>
+        <td>
+          <span class="badge {% if insc.statut == 'ACTIVE' %}badge-success{% else %}badge-gray{% endif %}">
+            {{ insc.get_statut_display }}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'detail_eleve' insc.eleve.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-eye"></i>
+          </a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucun eleve trouve.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

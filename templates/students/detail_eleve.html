@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% block title %}{{ eleve.nom_complet }}{% endblock %}
+{% block page_title %}Fiche eleve{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:16px">
+    <div style="width:56px;height:56px;border-radius:50%;
+                background:var(--primary);color:#fff;
+                display:flex;align-items:center;justify-content:center;
+                font-size:20px;font-weight:700;flex-shrink:0">
+      {{ eleve.prenom|slice:":1" }}{{ eleve.nom|slice:":1" }}
+    </div>
+    <div>
+      <h1>{{ eleve.nom_complet }}</h1>
+      <p>
+        {{ eleve.matricule }} —
+        {{ eleve.get_sexe_display }} —
+        {% if inscription_active %}
+        Classe : <strong>{{ inscription_active.salle.nom }}</strong>
+        {% else %}
+        Non inscrit
+        {% endif %}
+      </p>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+    <a href="{% url 'modifier_eleve' eleve.pk %}"
+       class="btn btn-secondary">
+      <i class="fas fa-edit"></i> Modifier
+    </a>
+    <a href="{% url 'transferer_eleve' eleve.pk %}"
+       class="btn btn-secondary">
+      <i class="fas fa-exchange-alt"></i> Transferer
+    </a>
+    {% endif %}
+    <a href="{% url 'liste_eleves' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Infos personnelles -->
+  <div class="card">
+    <div class="card-header"><h5>Informations personnelles</h5></div>
+    <div class="card-body">
+      <table class="table">
+        <tr>
+          <td style="color:var(--text-muted);width:160px">Matricule</td>
+          <td>
+            <span class="badge badge-primary">{{ eleve.matricule }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Nom complet</td>
+          <td><strong>{{ eleve.nom_complet }}</strong></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Sexe</td>
+          <td>{{ eleve.get_sexe_display }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Date naissance</td>
+          <td>
+            {{ eleve.date_naissance|date:"d/m/Y"|default:"Non renseignee" }}
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Lieu naissance</td>
+          <td>{{ eleve.lieu_naissance|default:"—" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Statut</td>
+          <td>
+            <span class="badge badge-success">
+              {{ eleve.get_statut_display }}
+            </span>
+            {% if eleve.redoublant %}
+            <span class="badge badge-warning" style="margin-left:6px">
+              Redoublant
+            </span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Groupe sanguin</td>
+          <td>{{ eleve.groupe_sanguin|default:"—" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Contact urgence</td>
+          <td>
+            {{ eleve.contact_urgence|default:"—" }}
+            {% if eleve.telephone_urgence %}
+            — {{ eleve.telephone_urgence }}
+            {% endif %}
+          </td>
+        </tr>
+        {% if eleve.user %}
+        <tr>
+          <td style="color:var(--text-muted)">Login</td>
+          <td style="font-family:monospace">{{ eleve.user.username }}</td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  <!-- Parents -->
+  <div class="card">
+    <div class="card-header">
+      <h5>Parents / Tuteurs</h5>
+      {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+      <a href="{% url 'ajouter_parent' eleve.pk %}"
+         class="btn btn-primary btn-sm">
+        <i class="fas fa-plus"></i> Ajouter
+      </a>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% for ep in parents %}
+      <div style="display:flex;justify-content:space-between;
+                  align-items:flex-start;padding:10px 0;
+                  border-bottom:1px solid var(--border-color)">
+        <div>
+          <div style="font-weight:600">
+            {{ ep.parent.nom_complet }}
+            {% if ep.est_contact_principal %}
+            <span class="badge badge-success" style="font-size:10px">
+              Principal
+            </span>
+            {% endif %}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:3px">
+            {{ ep.get_lien_display }}
+            {% if ep.parent.telephone %}
+             — {{ ep.parent.telephone }}
+            {% endif %}
+            {% if ep.parent.telephone_wa %}
+             — WA: {{ ep.parent.telephone_wa }}
+            {% endif %}
+          </div>
+        </div>
+        {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+        <form method="post"
+              action="{% url 'retirer_parent' eleve.pk ep.parent.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger btn-sm"
+                  onclick="return confirm('Retirer ce parent ?')">
+            <i class="fas fa-unlink"></i>
+          </button>
+        </form>
+        {% endif %}
+      </div>
+      {% empty %}
+      <p style="color:var(--text-muted);font-size:13px">
+        Aucun parent enregistre.
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Historique inscriptions -->
+<div class="card" style="margin-top:20px">
+  <div class="card-header"><h5>Historique des inscriptions</h5></div>
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Annee</th>
+          <th>Salle</th>
+          <th>Niveau</th>
+          <th>Date inscription</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for insc in inscriptions %}
+        <tr>
+          <td><strong>{{ insc.annee.nom }}</strong></td>
+          <td>{{ insc.salle.nom }}</td>
+          <td>{{ insc.salle.niveau.nom }}</td>
+          <td>{{ insc.date_inscription|date:"d/m/Y" }}</td>
+          <td>
+            <span class="badge
+              {% if insc.statut == 'ACTIVE' %}badge-success
+              {% else %}badge-gray{% endif %}">
+              {{ insc.get_statut_display }}
+            </span>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" style="text-align:center;
+              color:var(--text-muted);padding:20px">
+            Aucun historique.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

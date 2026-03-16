@@ -160,7 +160,7 @@
           <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
           <span>Paiements</span>
         </a>
-        <a href="/eleves/"
+        <a href="{% url 'liste_eleves' %}"
            class="nav-item {% if '/eleves/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-user-graduate"></i></span>
           <span>Eleves</span>
