@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% block title %}Calendrier{% endblock %}
+{% block page_title %}Calendrier scolaire{% endblock %}
+{% block extra_css %}
+<style>
+.type-ferie { border-left: 4px solid #DC2626; }
+.type-vacances { border-left: 4px solid #D97706; }
+.type-examen { border-left: 4px solid #7C3AED; }
+.type-reunion { border-left: 4px solid #0891B2; }
+.type-evenement { border-left: 4px solid #16A34A; }
+.type-autre { border-left: 4px solid #64748B; }
+.ev-card {
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ev-date {
+  min-width: 80px;
+  text-align: center;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.ev-date .jour {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Calendrier scolaire</h1>
+    <p>{% if annee %}{{ annee.nom }}{% endif %}</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'liste_reunions' %}" class="btn btn-secondary">
+      <i class="fas fa-users"></i> Reunions
+    </a>
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    <a href="{% url 'nouvel_evenement' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Ajouter
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Filtres par type -->
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+  <a href="{% url 'calendrier' %}"
+     class="btn {% if not type_filtre %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
+    Tous
+  </a>
+  {% for code, label in types %}
+  <a href="?type={{ code }}"
+     class="btn {% if type_filtre == code %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">
+    {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Evenements -->
+{% if evenements %}
+  {% regroup evenements by date_debut|date:"F Y" as evenements_par_mois %}
+  {% for groupe in evenements_par_mois %}
+  <div style="margin-bottom:24px">
+    <h3 style="font-size:15px;font-weight:600;color:var(--primary);
+               margin-bottom:12px;padding-bottom:6px;
+               border-bottom:2px solid var(--primary-light)">
+      {{ groupe.grouper }}
+    </h3>
+    {% for ev in groupe.list %}
+    <div class="ev-card type-{{ ev.type|lower }}">
+      <div class="ev-date"
+           style="background:{% if ev.type == 'FERIE' %}#DC2626
+           {% elif ev.type == 'VACANCES' %}#D97706
+           {% elif ev.type == 'EXAMEN' %}#7C3AED
+           {% elif ev.type == 'REUNION' %}#0891B2
+           {% elif ev.type == 'EVENEMENT' %}#16A34A
+           {% else %}#64748B{% endif %}">
+        <div class="jour">{{ ev.date_debut|date:"d" }}</div>
+        <div>{{ ev.date_debut|date:"M" }}</div>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;
+                    align-items:flex-start">
+          <div>
+            <div style="font-weight:600;font-size:14px">
+              {{ ev.titre }}
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:3px">
+              <span class="badge
+                {% if ev.type == 'FERIE' %}badge-danger
+                {% elif ev.type == 'VACANCES' %}badge-warning
+                {% elif ev.type == 'EXAMEN' %}badge-info
+                {% else %}badge-success{% endif %}">
+                {{ ev.get_type_display }}
+              </span>
+              {% if ev.date_fin and ev.date_fin != ev.date_debut %}
+              &nbsp;au {{ ev.date_fin|date:"d/m/Y" }}
+              {% endif %}
+            </div>
+          </div>
+          {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+          <form method="post"
+                action="{% url 'supprimer_evenement' ev.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm"
+                    onclick="return confirm('Supprimer ?')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+        {% if ev.description %}
+        <div style="font-size:12px;color:var(--text-muted);
+                    margin-top:6px">
+          {{ ev.description }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+{% else %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-calendar" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Aucun evenement dans le calendrier.</p>
+  {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+  <a href="{% url 'nouvel_evenement' %}" class="btn btn-primary"
+     style="margin-top:12px">
+    <i class="fas fa-plus"></i> Ajouter le premier evenement
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

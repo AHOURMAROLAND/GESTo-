@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Nouvelle reunion{% endblock %}
+{% block page_title %}Planifier une reunion{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Planifier une reunion</h1></div>
+  <a href="{% url 'liste_reunions' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="card" style="max-width:600px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">
+          Titre <span style="color:red">*</span>
+        </label>
+        <input type="text" name="titre" class="form-control"
+               placeholder="Ex: Reunion T1 — Parents 6eme" required>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">
+            Date <span style="color:red">*</span>
+          </label>
+          <input type="date" name="date" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            Heure <span style="color:red">*</span>
+          </label>
+          <input type="time" name="heure" class="form-control"
+                 required value="09:00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Lieu</label>
+        <input type="text" name="lieu" class="form-control"
+               value="Salle de conference">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="3"
+                  placeholder="Ordre du jour, informations..."></textarea>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:10px;
+                      cursor:pointer;font-size:13px">
+          <input type="checkbox" name="envoyer_convocations" value="1"
+                 checked>
+          <span>
+            Envoyer les convocations WhatsApp a tous les parents
+            <span style="color:var(--text-muted)">
+              (bot B26)
+            </span>
+          </span>
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-calendar-check"></i> Planifier
+        </button>
+        <a href="{% url 'liste_reunions' %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

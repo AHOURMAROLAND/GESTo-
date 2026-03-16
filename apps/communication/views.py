@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
-from .models import Notification, Message, Communique, LogBot
+from .models import Notification, Message, Communique, LogBot, EvenementCalendrier, ReunionParent
 from apps.authentication.models import CustomUser
 
 
@@ -394,3 +394,193 @@ def verifier_wa_view(request):
         'numero_formate': numero_formate,
         'message': msg_api,
     })
+
+
+# ── CALENDRIER SCOLAIRE ───────────────────────────────────────────────────────
+
+@login_required
+def calendrier(request):
+    from apps.academic.models import AnneeScolaire
+    annee = AnneeScolaire.active()
+    mois_f = request.GET.get('mois', '')
+    type_f = request.GET.get('type', '')
+
+    evenements = EvenementCalendrier.objects.filter(
+        annee=annee
+    ).order_by('date_debut') if annee else []
+
+    if type_f:
+        evenements = evenements.filter(type=type_f)
+
+    # Grouper par mois
+    from itertools import groupby
+    import calendar
+    from django.utils import timezone
+
+    today = timezone.now().date()
+
+    return render(request, 'communication/calendrier.html', {
+        'evenements': evenements,
+        'types': EvenementCalendrier.TYPES,
+        'type_filtre': type_f,
+        'annee': annee,
+        'today': today,
+    })
+
+
+@login_required
+@role_requis('DIRECTEUR', 'CENSEUR')
+def nouvel_evenement(request):
+    from apps.academic.models import AnneeScolaire
+    annee = AnneeScolaire.active()
+
+    if request.method == 'POST':
+        titre = request.POST.get('titre', '').strip()
+        type_ev = request.POST.get('type', 'EVENEMENT')
+        date_debut = request.POST.get('date_debut')
+        date_fin = request.POST.get('date_fin') or None
+        description = request.POST.get('description', '').strip()
+
+        if not titre or not date_debut:
+            messages.error(request, "Titre et date de debut obligatoires.")
+            return redirect('calendrier')
+
+        EvenementCalendrier.objects.create(
+            titre=titre,
+            type=type_ev,
+            date_debut=date_debut,
+            date_fin=date_fin,
+            description=description,
+            annee=annee,
+            creee_par=request.user,
+        )
+
+        # Notifier tout le personnel
+        from apps.authentication.models import CustomUser
+        personnel = CustomUser.objects.filter(
+            is_active=True
+        ).exclude(role__in=['PARENT', 'ELEVE'])
+
+        for p in personnel:
+            Notification.creer(
+                destinataire=p,
+                titre=f"Calendrier : {titre}",
+                message=f"{dict(EvenementCalendrier.TYPES).get(type_ev, '')} — {date_debut}",
+                type='INFO',
+                lien='/messagerie/calendrier/',
+            )
+
+        messages.success(request, f"Evenement '{titre}' ajoute au calendrier.")
+        return redirect('calendrier')
+
+    return render(request, 'communication/nouvel_evenement.html', {
+        'types': EvenementCalendrier.TYPES,
+        'annee': annee,
+    })
+
+
+@login_required
+@role_requis('DIRECTEUR', 'CENSEUR')
+def supprimer_evenement(request, pk):
+    if request.method == 'POST':
+        ev = get_object_or_404(EvenementCalendrier, pk=pk)
+        titre = ev.titre
+        ev.delete()
+        messages.success(request, f"'{titre}' supprime.")
+    return redirect('calendrier')
+
+
+# ── REUNIONS PARENTS ──────────────────────────────────────────────────────────
+
+@login_required
+def liste_reunions(request):
+    from apps.academic.models import AnneeScolaire
+    annee = AnneeScolaire.active()
+    reunions = ReunionParent.objects.filter(
+        annee=annee
+    ).select_related('organisee_par') if annee else []
+
+    return render(request, 'communication/reunions.html', {
+        'reunions': reunions,
+        'annee': annee,
+    })
+
+
+@login_required
+@role_requis('DIRECTEUR', 'CENSEUR')
+def nouvelle_reunion(request):
+    from apps.academic.models import AnneeScolaire
+    annee = AnneeScolaire.active()
+
+    if request.method == 'POST':
+        titre = request.POST.get('titre', '').strip()
+        date = request.POST.get('date')
+        heure = request.POST.get('heure')
+        lieu = request.POST.get('lieu', 'Salle de conference').strip()
+        description = request.POST.get('description', '').strip()
+        envoyer_convocations = request.POST.get('envoyer_convocations') == '1'
+
+        if not all([titre, date, heure]):
+            messages.error(request, "Titre, date et heure obligatoires.")
+            return redirect('liste_reunions')
+
+        reunion = ReunionParent.objects.create(
+            titre=titre,
+            date=date,
+            heure=heure,
+            lieu=lieu,
+            description=description,
+            statut='PLANIFIEE',
+            organisee_par=request.user,
+            annee=annee,
+        )
+
+        nb_conv = 0
+        if envoyer_convocations:
+            from apps.authentication.models import CustomUser
+            from .bots import envoyer_bot
+            parents = CustomUser.objects.filter(
+                role='PARENT', is_active=True
+            )
+            for parent in parents:
+                # Notification in-app
+                Notification.creer(
+                    destinataire=parent,
+                    titre=f"Reunion : {titre}",
+                    message=f"Le {date} a {heure} — {lieu}",
+                    type='INFO',
+                    lien='/messagerie/reunions/',
+                )
+                # Bot WhatsApp
+                envoyer_bot('B26', {
+                    'date': date,
+                    'heure': heure,
+                    'lieu': lieu,
+                }, destinataire_user=parent)
+                nb_conv += 1
+
+            reunion.nb_convocations_envoyees = nb_conv
+            reunion.save()
+
+        messages.success(
+            request,
+            f"Reunion planifiee. {nb_conv} convocation(s) envoyee(s)."
+        )
+        return redirect('liste_reunions')
+
+    return render(request, 'communication/nouvelle_reunion.html', {
+        'annee': annee,
+    })
+
+
+@login_required
+@role_requis('DIRECTEUR', 'CENSEUR')
+def changer_statut_reunion(request, pk):
+    if request.method == 'POST':
+        reunion = get_object_or_404(ReunionParent, pk=pk)
+        nouveau_statut = request.POST.get('statut')
+        if nouveau_statut in dict(ReunionParent.STATUTS):
+            reunion.statut = nouveau_statut
+            reunion.save()
+            messages.success(request, "Statut mis a jour.")
+    return redirect('liste_reunions')

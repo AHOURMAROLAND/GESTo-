@@ -48,6 +48,70 @@
     </div>
   </div>
 </div>
+
+{% if prochains_evenements or prochaine_reunion %}
+<div class="card mb-4">
+  <div class="card-header">
+    <h5><i class="fas fa-calendar-alt" style="color:var(--primary)"></i>
+      A venir</h5>
+    <a href="{% url 'calendrier' %}" class="btn btn-secondary btn-sm">
+      Voir tout
+    </a>
+  </div>
+  <div class="card-body" style="padding:12px 20px">
+    {% if prochaine_reunion %}
+    <div style="display:flex;align-items:center;gap:12px;
+                padding:8px 0;border-bottom:1px solid var(--border-color)">
+      <div style="width:36px;height:36px;border-radius:8px;
+                  background:#DBEAFE;display:flex;align-items:center;
+                  justify-content:center;flex-shrink:0">
+        <i class="fas fa-users" style="color:var(--primary)"></i>
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:13px">
+          {{ prochaine_reunion.titre }}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">
+          {{ prochaine_reunion.date|date:"d/m/Y" }} a
+          {{ prochaine_reunion.heure|time:"H:i" }}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% for ev in prochains_evenements %}
+    <div style="display:flex;align-items:center;gap:12px;
+                padding:8px 0;
+                {% if not forloop.last %}border-bottom:1px solid var(--border-color){% endif %}">
+      <div style="width:36px;height:36px;border-radius:8px;
+                  background:{% if ev.type == 'FERIE' %}#FEE2E2
+                  {% elif ev.type == 'VACANCES' %}#FEF9C3
+                  {% else %}#DCFCE7{% endif %};
+                  display:flex;align-items:center;justify-content:center;
+                  flex-shrink:0">
+        <i class="fas {% if ev.type == 'FERIE' %}fa-flag
+                      {% elif ev.type == 'VACANCES' %}fa-sun
+                      {% elif ev.type == 'EXAMEN' %}fa-pen
+                      {% else %}fa-star{% endif %}"
+           style="color:{% if ev.type == 'FERIE' %}#DC2626
+                  {% elif ev.type == 'VACANCES' %}#D97706
+                  {% else %}#16A34A{% endif %}">
+        </i>
+      </div>
+      <div>
+        <div style="font-weight:600;font-size:13px">{{ ev.titre }}</div>
+        <div style="font-size:12px;color:var(--text-muted)">
+          {{ ev.date_debut|date:"d/m/Y" }}
+          {% if ev.date_fin and ev.date_fin != ev.date_debut %}
+          au {{ ev.date_fin|date:"d/m/Y" }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <div class="card">
   <div class="card-header">
     <h5>Acces rapide</h5>

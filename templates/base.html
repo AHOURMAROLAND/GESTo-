@@ -243,9 +243,12 @@
       <div class="sidebar-section">
         <div class="sidebar-section-label">Communication</div>
         <a href="{% url 'messagerie' %}"
-           class="nav-item {% if '/messagerie/' in request.path and '/notifications/' not in request.path %}active{% endif %}">
+           class="nav-item {% if request.path == '/messagerie/' %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-envelope"></i></span>
           <span>Messages</span>
+          {% if nb_notifs > 0 %}
+          <span class="nav-badge">{{ nb_notifs }}</span>
+          {% endif %}
         </a>
         <a href="{% url 'liste_notifications' %}"
            class="nav-item {% if '/notifications/' in request.path %}active{% endif %}">
@@ -255,9 +258,19 @@
           <span class="nav-badge">{{ nb_notifs }}</span>
           {% endif %}
         </a>
-        {% if request.user.role == 'DIRECTEUR' or request.user.role == 'CENSEUR' %}
+        <a href="{% url 'calendrier' %}"
+           class="nav-item {% if '/calendrier/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
+          <span>Calendrier</span>
+        </a>
+        {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+        <a href="{% url 'liste_reunions' %}"
+           class="nav-item {% if '/reunions/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-users"></i></span>
+          <span>Reunions</span>
+        </a>
         <a href="{% url 'logs_bots' %}"
-           class="nav-item {% if '/bots/' in request.path %}active{% endif %}">
+           class="nav-item {% if '/bots/logs/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fab fa-whatsapp"></i></span>
           <span>Bots WA</span>
         </a>

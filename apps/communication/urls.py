@@ -20,6 +20,19 @@ urlpatterns = [
     path('message/<int:pk>/', views.detail_message, name='detail_message'),
     path('communique/nouveau/', views.nouveau_communique,
          name='nouveau_communique'),
+    # Bots
     path('bots/logs/', views.logs_bots, name='logs_bots'),
     path('api/verifier-wa/', views.verifier_wa_view, name='verifier_wa'),
+    # Calendrier
+    path('calendrier/', views.calendrier, name='calendrier'),
+    path('calendrier/nouveau/', views.nouvel_evenement,
+         name='nouvel_evenement'),
+    path('calendrier/<int:pk>/supprimer/', views.supprimer_evenement,
+         name='supprimer_evenement'),
+    # Reunions
+    path('reunions/', views.liste_reunions, name='liste_reunions'),
+    path('reunions/nouvelle/', views.nouvelle_reunion,
+         name='nouvelle_reunion'),
+    path('reunions/<int:pk>/statut/', views.changer_statut_reunion,
+         name='changer_statut_reunion'),
 ]

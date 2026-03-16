@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Reunions{% endblock %}
+{% block page_title %}Reunions parents-professeurs{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Reunions parents-professeurs</h1>
+    <p>{{ reunions.count }} reunion(s)</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'calendrier' %}" class="btn btn-secondary">
+      <i class="fas fa-calendar"></i> Calendrier
+    </a>
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    <a href="{% url 'nouvelle_reunion' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Planifier
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% for r in reunions %}
+<div class="card mb-3">
+  <div class="card-body">
+    <div style="display:flex;justify-content:space-between;
+                align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="width:56px;height:56px;border-radius:10px;
+                    background:var(--primary);color:#fff;
+                    display:flex;flex-direction:column;
+                    align-items:center;justify-content:center;
+                    flex-shrink:0">
+          <span style="font-size:20px;font-weight:700;line-height:1">
+            {{ r.date|date:"d" }}
+          </span>
+          <span style="font-size:10px">{{ r.date|date:"M" }}</span>
+        </div>
+        <div>
+          <div style="font-size:16px;font-weight:600">{{ r.titre }}</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:3px">
+            <i class="fas fa-clock"></i> {{ r.heure|time:"H:i" }}
+            &nbsp;|&nbsp;
+            <i class="fas fa-map-marker-alt"></i> {{ r.lieu }}
+          </div>
+          {% if r.description %}
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+            {{ r.description }}
+          </div>
+          {% endif %}
+          <div style="margin-top:6px;font-size:12px;color:var(--text-muted)">
+            <i class="fab fa-whatsapp" style="color:#25D366"></i>
+            {{ r.nb_convocations_envoyees }} convocation(s) envoyee(s)
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span class="badge
+          {% if r.statut == 'PLANIFIEE' %}badge-info
+          {% elif r.statut == 'EN_COURS' %}badge-success
+          {% elif r.statut == 'TERMINEE' %}badge-gray
+          {% else %}badge-danger{% endif %}"
+          style="font-size:12px;padding:5px 12px">
+          {{ r.get_statut_display }}
+        </span>
+        {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+        <form method="post"
+              action="{% url 'changer_statut_reunion' r.pk %}">
+          {% csrf_token %}
+          <select name="statut" class="form-control"
+                  style="width:auto;font-size:12px;padding:4px 8px"
+                  onchange="this.form.submit()">
+            {% for code, label in r.STATUTS %}
+            <option value="{{ code }}"
+              {% if r.statut == code %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% empty %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-users" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Aucune reunion planifiee.</p>
+</div>
+{% endfor %}
+{% endblock %}

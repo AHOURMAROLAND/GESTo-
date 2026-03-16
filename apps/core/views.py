@@ -42,6 +42,29 @@ def dashboard(request):
         is_active=True
     ).exclude(role__in=['PARENT', 'ELEVE']).count()
 
+    # Apres le calcul nb_personnel
+    from apps.communication.models import Notification, ReunionParent, EvenementCalendrier
+    from django.utils import timezone
+
+    today = timezone.now().date()
+
+    # Prochains evenements
+    prochains_evenements = EvenementCalendrier.objects.filter(
+        annee=annee,
+        date_debut__gte=today,
+    ).order_by('date_debut')[:3] if annee else []
+
+    # Prochaine reunion
+    prochaine_reunion = ReunionParent.objects.filter(
+        annee=annee,
+        date__gte=today,
+        statut='PLANIFIEE',
+    ).order_by('date').first() if annee else None
+
+    context['prochains_evenements'] = prochains_evenements
+    context['prochaine_reunion'] = prochaine_reunion
+    context['today'] = today
+
     role = request.user.role
     template = f'dashboards/{role.lower()}.html'
 

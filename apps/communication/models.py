@@ -80,3 +80,85 @@ class LogBot(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+class EvenementCalendrier(models.Model):
+    TYPES = [
+        ('FERIE', 'Jour ferie'),
+        ('VACANCES', 'Vacances'),
+        ('EXAMEN', 'Examen'),
+        ('REUNION', 'Reunion'),
+        ('EVENEMENT', 'Evenement scolaire'),
+        ('AUTRE', 'Autre'),
+    ]
+    titre = models.CharField(max_length=200)
+    type = models.CharField(max_length=15, choices=TYPES, default='EVENEMENT')
+    date_debut = models.DateField()
+    date_fin = models.DateField(null=True, blank=True)
+    description = models.TextField(blank=True)
+    concerne_tous = models.BooleanField(default=True)
+    annee = models.ForeignKey(
+        'academic.AnneeScolaire',
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name='evenements',
+    )
+    creee_par = models.ForeignKey(
+        'authentication.CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['date_debut']
+        verbose_name = 'Evenement calendrier'
+
+    def __str__(self):
+        return f"{self.titre} — {self.date_debut}"
+
+    @property
+    def est_passe(self):
+        from django.utils import timezone
+        return self.date_debut < timezone.now().date()
+
+    @property
+    def date_fin_effective(self):
+        return self.date_fin or self.date_debut
+
+
+class ReunionParent(models.Model):
+    STATUTS = [
+        ('PLANIFIEE', 'Planifiee'),
+        ('EN_COURS', 'En cours'),
+        ('TERMINEE', 'Terminee'),
+        ('ANNULEE', 'Annulee'),
+    ]
+    titre = models.CharField(max_length=200)
+    date = models.DateField()
+    heure = models.TimeField()
+    lieu = models.CharField(max_length=200, default='Salle de conference')
+    description = models.TextField(blank=True)
+    statut = models.CharField(
+        max_length=15, choices=STATUTS, default='PLANIFIEE'
+    )
+    organisee_par = models.ForeignKey(
+        'authentication.CustomUser',
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='reunions_organisees',
+    )
+    annee = models.ForeignKey(
+        'academic.AnneeScolaire',
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+    )
+    nb_convocations_envoyees = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-date']
+        verbose_name = 'Reunion parents'
+
+    def __str__(self):
+        return f"{self.titre} — {self.date}"
