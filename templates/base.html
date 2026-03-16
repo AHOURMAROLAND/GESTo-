@@ -71,11 +71,12 @@
           <span class="nav-badge">{{ taches_en_attente }}</span>
           {% endif %}
         </a>
-        <a href="{% url 'liste_grilles' %}"
-           class="nav-item {% if '/emploi-du-temps/' in request.path %}active{% endif %}">
-          <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
-          <span>Emploi du temps</span>
+        <a href="{% url 'liste_seances' %}"
+           class="nav-item {% if '/presences/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-check-square"></i></span>
+          <span>Presences</span>
         </a>
+        <a href="{% url 'liste_grilles' %}"
         <a href="{% url 'liste_examens' %}"
            class="nav-item {% if '/notes/examens/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
@@ -118,7 +119,7 @@
           <span class="nav-badge">{{ taches_en_attente }}</span>
           {% endif %}
         </a>
-        <a href="/presences/"
+        <a href="{% url 'liste_seances' %}"
            class="nav-item {% if '/presences/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-check-square"></i></span>
           <span>Pointage</span>
@@ -187,7 +188,7 @@
       {% if request.user.role == 'SURVEILLANT' %}
       <div class="sidebar-section">
         <div class="sidebar-section-label">Surveillance</div>
-        <a href="/presences/"
+        <a href="{% url 'liste_seances' %}"
            class="nav-item {% if '/presences/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-eye"></i></span>
           <span>Presences</span>

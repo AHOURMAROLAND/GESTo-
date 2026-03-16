@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}Presences{% endblock %}
+{% block page_title %}Pointage des presences{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Pointage presences</h1>
+    <p>Seances du {{ date_filtre }}</p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="{% url 'rapport_journalier' %}" class="btn btn-secondary">
+      <i class="fas fa-chart-bar"></i> Rapport
+    </a>
+    <a href="{% url 'liste_absences' %}" class="btn btn-secondary">
+      <i class="fas fa-user-times"></i> Absences
+    </a>
+    {% if request.user.role in 'DIRECTEUR CENSEUR PROFESSEUR SURVEILLANT' %}
+    <a href="{% url 'nouvelle_seance' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouvelle seance
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get"
+      style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <input type="date" name="date" value="{{ date_filtre }}"
+         class="form-control" style="max-width:180px"
+         onchange="this.form.submit()">
+  {% if request.user.role in 'DIRECTEUR CENSEUR SURVEILLANT' %}
+  <select name="salle" class="form-control" style="max-width:200px"
+          onchange="this.form.submit()">
+    <option value="">Toutes les salles</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_filtre == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }}
+    </option>
+    {% endfor %}
+  </select>
+  {% endif %}
+  <a href="?date={{ aujourd_hui }}" class="btn btn-secondary">
+    Aujourd'hui
+  </a>
+</form>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Salle</th>
+        <th>Matiere</th>
+        <th>Professeur</th>
+        <th>Creneau</th>
+        <th>Statut</th>
+        <th>Absents</th>
+        <th>Retards</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for seance in seances %}
+      {% with presences=seance.presences %}
+      <tr>
+        <td><strong>{{ seance.matiere_salle.salle.nom }}</strong></td>
+        <td>{{ seance.matiere_salle.matiere.nom }}</td>
+        <td style="font-size:12px">
+          {{ seance.matiere_salle.professeur.nom_complet|default:"—" }}
+        </td>
+        <td>
+          {% if seance.creneau %}
+          <span class="badge badge-gray">
+            H{{ seance.creneau.numero }}
+            {{ seance.creneau.heure_debut|time:"H:i" }}
+          </span>
+          {% else %}
+          <span style="color:var(--text-muted)">—</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="badge
+            {% if seance.statut == 'EN_COURS' %}badge-warning
+            {% elif seance.statut == 'SOUMIS' %}badge-info
+            {% else %}badge-success{% endif %}">
+            {{ seance.get_statut_display }}
+          </span>
+        </td>
+        <td>
+          <span style="color:var(--danger);font-weight:600">
+            {{ presences.filter_absent|default:"—" }}
+          </span>
+        </td>
+        <td>
+          <span style="color:var(--warning);font-weight:600">
+            {{ presences.filter_retard|default:"—" }}
+          </span>
+        </td>
+        <td style="display:flex;gap:6px">
+          <a href="{% url 'detail_seance' seance.pk %}"
+             class="btn btn-secondary btn-sm">
+            <i class="fas fa-eye"></i>
+          </a>
+          {% if seance.est_modifiable_par_prof or request.user.role in 'DIRECTEUR CENSEUR' %}
+          <a href="{% url 'pointer_presence' seance.pk %}"
+             class="btn btn-primary btn-sm">
+            <i class="fas fa-pen"></i>
+          </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr>
+        <td colspan="8" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucune seance pour cette date.
+          <br>
+          <a href="{% url 'nouvelle_seance' %}"
+             class="btn btn-primary" style="margin-top:12px">
+            Creer une seance
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

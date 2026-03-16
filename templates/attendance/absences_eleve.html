@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Absences {{ eleve.nom_complet }}{% endblock %}
+{% block page_title %}Absences — {{ eleve.nom_complet }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ eleve.nom_complet }}</h1>
+    <p>{{ eleve.matricule }} — Historique absences et retards</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'detail_eleve' eleve.pk %}" class="btn btn-secondary">
+      <i class="fas fa-user"></i> Fiche eleve
+    </a>
+    <a href="{% url 'liste_absences' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="grid-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2">
+      <i class="fas fa-times" style="color:#DC2626"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.absences }}</div>
+      <div class="stat-label">Absences</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-check" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.absences_justifiees }}</div>
+      <div class="stat-label">Abs. justifiees</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-clock" style="color:#D97706"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.retards }}</div>
+      <div class="stat-label">Retards</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#F0FDF4">
+      <i class="fas fa-check-circle" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.retards_justifies }}</div>
+      <div class="stat-label">Retards justifies</div>
+    </div>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Matiere</th>
+        <th>Salle</th>
+        <th>Statut</th>
+        <th>Motif</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in presences %}
+      <tr>
+        <td>{{ p.seance.date|date:"d/m/Y" }}</td>
+        <td>{{ p.seance.matiere_salle.matiere.nom }}</td>
+        <td>{{ p.seance.matiere_salle.salle.nom }}</td>
+        <td>
+          <span class="badge
+            {% if p.statut == 'ABSENT' %}badge-danger
+            {% elif p.statut == 'ABSENT_JUSTIFIE' %}badge-gray
+            {% elif p.statut == 'RETARD' %}badge-warning
+            {% else %}badge-info{% endif %}">
+            {{ p.get_statut_display }}
+          </span>
+        </td>
+        <td style="font-size:12px">{{ p.motif|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucune absence enregistree.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

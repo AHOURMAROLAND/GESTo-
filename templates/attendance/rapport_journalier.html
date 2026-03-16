@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Rapport journalier{% endblock %}
+{% block page_title %}Rapport journalier presences{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Rapport journalier</h1>
+    <p>{{ date_filtre }}</p>
+  </div>
+  <a href="{% url 'liste_seances' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<form method="get"
+      style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <input type="date" name="date" value="{{ date_filtre }}"
+         class="form-control" style="max-width:180px">
+  <button type="submit" class="btn btn-primary">
+    <i class="fas fa-search"></i> Voir
+  </button>
+  <a href="?date={{ aujourd_hui }}" class="btn btn-secondary">
+    Aujourd'hui
+  </a>
+</form>
+
+<!-- Stats globales -->
+<div class="grid-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-check" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ taux_global }}%</div>
+      <div class="stat-label">Taux presence global</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2">
+      <i class="fas fa-user-times" style="color:#DC2626"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ total_absents }}</div>
+      <div class="stat-label">Total absents</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-clock" style="color:#D97706"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ total_retards }}</div>
+      <div class="stat-label">Total retards</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DBEAFE">
+      <i class="fas fa-clipboard-list" style="color:#1E40AF"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ rapport|length }}</div>
+      <div class="stat-label">Seances pointees</div>
+    </div>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Salle</th>
+        <th>Matiere</th>
+        <th>Professeur</th>
+        <th>Presents</th>
+        <th>Absents</th>
+        <th>Retards</th>
+        <th>Taux</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ligne in rapport %}
+      <tr>
+        <td>
+          <strong>{{ ligne.seance.matiere_salle.salle.nom }}</strong>
+        </td>
+        <td>{{ ligne.seance.matiere_salle.matiere.nom }}</td>
+        <td style="font-size:12px">
+          {{ ligne.seance.matiere_salle.professeur.nom_complet|default:"—" }}
+        </td>
+        <td style="color:var(--success);font-weight:600">
+          {{ ligne.nb_presents }}
+        </td>
+        <td style="color:var(--danger);font-weight:600">
+          {{ ligne.nb_absents }}
+        </td>
+        <td style="color:var(--warning);font-weight:600">
+          {{ ligne.nb_retards }}
+        </td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="progress-bar-container" style="width:80px">
+              <div class="progress-bar-fill"
+                   style="width:{{ ligne.taux }}%;
+                   background:{% if ligne.taux >= 90 %}var(--success)
+                   {% elif ligne.taux >= 70 %}var(--warning)
+                   {% else %}var(--danger){% endif %}">
+              </div>
+            </div>
+            <span style="font-size:12px">{{ ligne.taux }}%</span>
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucune seance pointee pour cette date.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}Seance{{ seance.pk }}{% endblock %}
+{% block page_title %}Detail seance{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>
+      {{ seance.matiere_salle.salle.nom }} —
+      {{ seance.matiere_salle.matiere.nom }}
+    </h1>
+    <p>
+      {{ seance.date|date:"d/m/Y" }}
+      {% if seance.creneau %}— H{{ seance.creneau.numero }}{% endif %}
+      — {{ seance.get_statut_display }}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px">
+    {% if peut_modifier or request.user.role in 'DIRECTEUR CENSEUR' %}
+    <a href="{% url 'pointer_presence' seance.pk %}"
+       class="btn btn-primary">
+      <i class="fas fa-edit"></i> Modifier
+    </a>
+    {% endif %}
+    <a href="{% url 'liste_seances' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="grid-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-check" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.presents }}</div>
+      <div class="stat-label">Presents</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2">
+      <i class="fas fa-times" style="color:#DC2626"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.absents }}</div>
+      <div class="stat-label">Absents</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-clock" style="color:#D97706"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.retards }}</div>
+      <div class="stat-label">Retards</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DBEAFE">
+      <i class="fas fa-users" style="color:#1E40AF"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.total }}</div>
+      <div class="stat-label">Total pointes</div>
+    </div>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Eleve</th>
+        <th>Statut</th>
+        <th>Heure arrivee</th>
+        <th>Motif</th>
+        <th>Pointe par</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in presences %}
+      <tr style="{% if p.statut == 'ABSENT' %}background:rgba(220,38,38,0.03)
+                 {% elif p.statut == 'RETARD' %}background:rgba(217,119,6,0.03)
+                 {% endif %}">
+        <td><strong>{{ p.eleve.nom_complet }}</strong></td>
+        <td>
+          <span class="badge
+            {% if p.statut == 'PRESENT' %}badge-success
+            {% elif p.statut in 'ABSENT ABSENT_JUSTIFIE' %}badge-danger
+            {% elif p.statut in 'RETARD RETARD_JUSTIFIE' %}badge-warning
+            {% else %}badge-gray{% endif %}">
+            {{ p.get_statut_display }}
+          </span>
+        </td>
+        <td>{{ p.heure_arrivee|time:"H:i"|default:"—" }}</td>
+        <td style="font-size:12px">{{ p.motif|default:"—" }}</td>
+        <td style="font-size:12px;color:var(--text-muted)">
+          {{ p.pointe_par.nom_complet|default:"—" }}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucun pointage enregistre.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

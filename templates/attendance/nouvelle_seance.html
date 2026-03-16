@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Nouvelle seance{% endblock %}
+{% block page_title %}Nouvelle seance de pointage{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Nouvelle seance</h1></div>
+  <a href="{% url 'liste_seances' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="card" style="max-width:560px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">
+          Salle et matiere <span style="color:red">*</span>
+        </label>
+        <select name="matiere_salle_id" class="form-control"
+                id="select-ms" required onchange="chargerCreneaux()">
+          <option value="">Choisir...</option>
+          {% for ms in matieres_salle %}
+          <option value="{{ ms.pk }}">
+            {{ ms.salle.nom }} —
+            {{ ms.matiere.nom }}
+            ({{ ms.salle.niveau.nom }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Date <span style="color:red">*</span>
+        </label>
+        <input type="date" name="date" class="form-control"
+               value="{{ aujourd_hui }}" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Creneau horaire</label>
+        <select name="creneau_id" class="form-control" id="select-creneau">
+          <option value="">Sans creneau specifique</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-play"></i> Demarrer le pointage
+        </button>
+        <a href="{% url 'liste_seances' %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const creneauxData = {{ creneaux_json|safe }};
+
+function chargerCreneaux() {
+  const msId = document.getElementById('select-ms').value;
+  const select = document.getElementById('select-creneau');
+  select.innerHTML = '<option value="">Sans creneau specifique</option>';
+
+  if (msId && creneauxData[msId]) {
+    creneauxData[msId].forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.pk;
+      opt.textContent = `H${c.numero} — ${c.heure_debut} a ${c.heure_fin}`;
+      select.appendChild(opt);
+    });
+  }
+}
+</script>
+{% endblock %}

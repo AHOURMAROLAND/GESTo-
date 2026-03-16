@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block title %}Absences{% endblock %}
+{% block page_title %}Absences et retards{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Absences et retards</h1>
+    <p>{{ total }} enregistrement(s)</p>
+  </div>
+  <a href="{% url 'rapport_journalier' %}" class="btn btn-secondary">
+    <i class="fas fa-chart-bar"></i> Rapport journalier
+  </a>
+</div>
+
+<form method="get"
+      style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <input type="date" name="date_debut" value="{{ date_debut }}"
+         class="form-control" style="max-width:160px">
+  <input type="date" name="date_fin" value="{{ date_fin }}"
+         class="form-control" style="max-width:160px">
+  <select name="salle" class="form-control" style="max-width:180px"
+          onchange="this.form.submit()">
+    <option value="">Toutes les salles</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_filtre == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }}
+    </option>
+    {% endfor %}
+  </select>
+  <select name="statut" class="form-control" style="max-width:200px"
+          onchange="this.form.submit()">
+    <option value="">Tous</option>
+    {% for code, label in statuts %}
+    {% if code != 'PRESENT' %}
+    <option value="{{ code }}"
+      {% if statut_filtre == code %}selected{% endif %}>
+      {{ label }}
+    </option>
+    {% endif %}
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn btn-primary">
+    <i class="fas fa-search"></i> Filtrer
+  </button>
+  <a href="{% url 'liste_absences' %}" class="btn btn-secondary">
+    Reinitialiser
+  </a>
+</form>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Eleve</th>
+        <th>Salle</th>
+        <th>Matiere</th>
+        <th>Statut</th>
+        <th>Motif</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in presences %}
+      <tr>
+        <td>{{ p.seance.date|date:"d/m/Y" }}</td>
+        <td>
+          <a href="{% url 'absences_eleve' p.eleve.pk %}"
+             style="color:var(--primary);text-decoration:none;font-weight:600">
+            {{ p.eleve.nom_complet }}
+          </a>
+        </td>
+        <td>{{ p.seance.matiere_salle.salle.nom }}</td>
+        <td style="font-size:12px">
+          {{ p.seance.matiere_salle.matiere.nom }}
+        </td>
+        <td>
+          <span class="badge
+            {% if p.statut in 'ABSENT' %}badge-danger
+            {% elif p.statut == 'ABSENT_JUSTIFIE' %}badge-gray
+            {% elif p.statut == 'RETARD' %}badge-warning
+            {% else %}badge-info{% endif %}">
+            {{ p.get_statut_display }}
+          </span>
+        </td>
+        <td style="font-size:12px">{{ p.motif|default:"—" }}</td>
+        <td>
+          {% if p.statut in 'ABSENT RETARD' %}
+          {% if request.user.role in 'DIRECTEUR CENSEUR SURVEILLANT' %}
+          <button class="btn btn-secondary btn-sm"
+                  onclick="ouvrirJustif(
+                    {{ p.pk }},
+                    '{{ p.eleve.nom_complet }}'
+                  )">
+            <i class="fas fa-check"></i> Justifier
+          </button>
+          {% endif %}
+          {% else %}
+          <span style="color:var(--success);font-size:12px">
+            <i class="fas fa-check-circle"></i> Justifiee
+          </span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucune absence trouvee.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal justification -->
+<div id="modal-justif" style="display:none;position:fixed;inset:0;
+     background:rgba(0,0,0,0.4);z-index:2000;
+     align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border-radius:12px;padding:24px;
+              width:100%;max-width:400px;margin:20px">
+    <h3 style="font-size:15px;margin-bottom:4px;color:var(--text-main)">
+      Justifier l'absence
+    </h3>
+    <p id="modal-nom" style="font-size:13px;color:var(--text-muted);
+       margin-bottom:16px"></p>
+    <form method="post" id="form-justif">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Motif de justification</label>
+        <input type="text" name="motif" class="form-control"
+               placeholder="Ex: Certificat medical, deces...">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-success">
+          <i class="fas fa-check"></i> Justifier
+        </button>
+        <button type="button" class="btn btn-secondary"
+                onclick="fermerJustif()">
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function ouvrirJustif(pk, nom) {
+  document.getElementById('modal-nom').textContent = nom;
+  document.getElementById('form-justif').action =
+    '/presences/absences/' + pk + '/justifier/';
+  document.getElementById('modal-justif').style.display = 'flex';
+}
+function fermerJustif() {
+  document.getElementById('modal-justif').style.display = 'none';
+}
+document.getElementById('modal-justif').addEventListener('click', function(e) {
+  if (e.target === this) fermerJustif();
+});
+</script>
+{% endblock %}

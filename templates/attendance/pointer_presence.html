@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% block title %}Pointage{% endblock %}
+{% block page_title %}Pointage — {{ seance.matiere_salle.salle.nom }}{% endblock %}
+{% block extra_css %}
+<style>
+.presence-row {
+  display:grid;
+  grid-template-columns:40px 1fr 180px 100px 200px;
+  gap:10px;align-items:center;
+  padding:8px 12px;
+  border-bottom:1px solid var(--border-color);
+  font-size:13px;
+}
+.presence-row:hover { background:var(--bg-page); }
+.presence-header {
+  background:var(--primary);color:#fff;
+  border-radius:8px 8px 0 0;
+  font-weight:600;font-size:12px;
+}
+.btn-statut {
+  padding:5px 10px;border-radius:6px;border:1.5px solid transparent;
+  font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;
+}
+.btn-present { background:#DCFCE7;color:#166534;border-color:#86EFAC; }
+.btn-present.actif { background:#16A34A;color:#fff;border-color:#16A34A; }
+.btn-absent { background:#FEE2E2;color:#991B1B;border-color:#FCA5A5; }
+.btn-absent.actif { background:#DC2626;color:#fff;border-color:#DC2626; }
+.btn-retard { background:#FEF9C3;color:#854D0E;border-color:#FCD34D; }
+.btn-retard.actif { background:#D97706;color:#fff;border-color:#D97706; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Pointage — {{ seance.matiere_salle.salle.nom }}</h1>
+    <p>
+      {{ seance.matiere_salle.matiere.nom }} —
+      {{ seance.date|date:"d/m/Y" }}
+      {% if seance.creneau %}— H{{ seance.creneau.numero }}{% endif %}
+    </p>
+  </div>
+  <a href="{% url 'detail_seance' seance.pk %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="alert alert-info mb-4">
+  <i class="fas fa-clock"></i>
+  Apres soumission, vous avez <strong>10 minutes</strong>
+  pour corriger. Au-dela, le pointage est verrouille.
+</div>
+
+<form method="post" id="form-pointage">
+  {% csrf_token %}
+  <div class="card">
+    <div class="card-header">
+      <h5>
+        <i class="fas fa-users"></i>
+        {{ inscrits.count }} eleve(s) — Cliquez sur le statut
+      </h5>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn btn-secondary btn-sm"
+                onclick="tousPresents()">
+          Tous presents
+        </button>
+        <button type="submit" name="action" value="sauvegarder"
+                class="btn btn-secondary">
+          <i class="fas fa-save"></i> Sauvegarder
+        </button>
+        <button type="submit" name="action" value="soumettre"
+                class="btn btn-primary"
+                onclick="return confirm(
+                  'Soumettre le pointage ? '
+                  + 'Vous aurez 10 minutes pour corriger.'
+                )">
+          <i class="fas fa-paper-plane"></i> Soumettre
+        </button>
+      </div>
+    </div>
+
+    <div class="presence-header presence-row">
+      <span>#</span>
+      <span>Eleve</span>
+      <span>Statut</span>
+      <span>Heure arrivee</span>
+      <span>Motif</span>
+    </div>
+
+    {% for insc in inscrits %}
+    {% with p=presences|get_item:insc.eleve.pk %}
+    <div class="presence-row" id="row-{{ insc.eleve.pk }}">
+      <span style="color:var(--text-muted)">{{ forloop.counter }}</span>
+      <span>
+        <strong>{{ insc.eleve.nom_complet }}</strong>
+        {% if insc.eleve.redoublant %}
+        <span class="badge badge-warning" style="font-size:10px">R</span>
+        {% endif %}
+      </span>
+      <div style="display:flex;gap:4px">
+        <input type="hidden"
+               name="statut_{{ insc.eleve.pk }}"
+               id="statut-{{ insc.eleve.pk }}"
+               value="{% if p %}{{ p.statut }}{% else %}PRESENT{% endif %}">
+        <button type="button"
+                class="btn-statut btn-present
+                  {% if not p or p.statut == 'PRESENT' %}actif{% endif %}"
+                onclick="setStatut({{ insc.eleve.pk }}, 'PRESENT', this)">
+          P
+        </button>
+        <button type="button"
+                class="btn-statut btn-absent
+                  {% if p and p.statut in 'ABSENT ABSENT_JUSTIFIE' %}actif{% endif %}"
+                onclick="setStatut({{ insc.eleve.pk }}, 'ABSENT', this)">
+          A
+        </button>
+        <button type="button"
+                class="btn-statut btn-retard
+                  {% if p and p.statut in 'RETARD RETARD_JUSTIFIE' %}actif{% endif %}"
+                onclick="setStatut({{ insc.eleve.pk }}, 'RETARD', this)">
+          R
+        </button>
+      </div>
+      <input type="time"
+             name="heure_{{ insc.eleve.pk }}"
+             class="form-control"
+             style="width:90px;font-size:12px;padding:4px 6px"
+             value="{% if p and p.heure_arrivee %}{{ p.heure_arrivee|time:'H:i' }}{% endif %}">
+      <input type="text"
+             name="motif_{{ insc.eleve.pk }}"
+             class="form-control"
+             style="font-size:12px;padding:4px 8px"
+             placeholder="Motif (optionnel)"
+             value="{% if p %}{{ p.motif }}{% endif %}">
+    </div>
+    {% endwith %}
+    {% endfor %}
+
+    <div style="padding:16px;display:flex;justify-content:flex-end;gap:10px;
+                border-top:1px solid var(--border-color)">
+      <button type="submit" name="action" value="sauvegarder"
+              class="btn btn-secondary">
+        <i class="fas fa-save"></i> Sauvegarder
+      </button>
+      <button type="submit" name="action" value="soumettre"
+              class="btn btn-primary btn-lg"
+              onclick="return confirm(
+                'Soumettre le pointage definitif ?'
+              )">
+        <i class="fas fa-paper-plane"></i> Soumettre le pointage
+      </button>
+    </div>
+  </div>
+</form>
+
+<!-- Compteur temps reel -->
+<div style="position:fixed;bottom:80px;right:20px;
+            background:var(--bg-card);border:1px solid var(--border-color);
+            border-radius:10px;padding:12px 16px;font-size:13px;
+            box-shadow:0 4px 12px rgba(0,0,0,0.1)"
+     id="compteur">
+  <div style="font-weight:600;color:var(--text-main)">
+    Apercu temps reel
+  </div>
+  <div style="margin-top:4px">
+    <span style="color:var(--success)">
+      P : <span id="cnt-p">0</span>
+    </span> |
+    <span style="color:var(--danger)">
+      A : <span id="cnt-a">0</span>
+    </span> |
+    <span style="color:var(--warning)">
+      R : <span id="cnt-r">0</span>
+    </span>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function setStatut(eleveId, statut, btn) {
+  document.getElementById('statut-' + eleveId).value = statut;
+  const row = document.getElementById('row-' + eleveId);
+
+  row.querySelectorAll('.btn-statut').forEach(b => {
+    b.classList.remove('actif');
+  });
+  btn.classList.add('actif');
+
+  if (statut === 'ABSENT') {
+    row.style.background = 'rgba(220,38,38,0.05)';
+  } else if (statut === 'RETARD') {
+    row.style.background = 'rgba(217,119,6,0.05)';
+  } else {
+    row.style.background = '';
+  }
+  mettreAJourCompteur();
+}
+
+function tousPresents() {
+  document.querySelectorAll('[id^="statut-"]').forEach(input => {
+    const id = input.id.replace('statut-', '');
+    input.value = 'PRESENT';
+    const row = document.getElementById('row-' + id);
+    row.querySelectorAll('.btn-statut').forEach(b => b.classList.remove('actif'));
+    row.querySelector('.btn-present').classList.add('actif');
+    row.style.background = '';
+  });
+  mettreAJourCompteur();
+}
+
+function mettreAJourCompteur() {
+  let p = 0, a = 0, r = 0;
+  document.querySelectorAll('[id^="statut-"]').forEach(input => {
+    if (input.value === 'PRESENT') p++;
+    else if (input.value === 'ABSENT') a++;
+    else if (input.value === 'RETARD') r++;
+  });
+  document.getElementById('cnt-p').textContent = p;
+  document.getElementById('cnt-a').textContent = a;
+  document.getElementById('cnt-r').textContent = r;
+}
+
+document.addEventListener('DOMContentLoaded', mettreAJourCompteur);
+</script>
+{% endblock %}
