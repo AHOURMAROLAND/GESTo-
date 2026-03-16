@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% block title %}Groupes matieres — {{ niveau.nom }}{% endblock %}
+{% block page_title %}Groupes de matieres{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Groupes de matieres — {{ niveau.nom }}</h1>
+    <p>Definissez les groupes pour ce niveau</p>
+  </div>
+  <a href="{% url 'liste_niveaux' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header"><h5>Ajouter un groupe</h5></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="ajouter">
+        <div class="form-group">
+          <label class="form-label">Nom du groupe</label>
+          <input type="text" name="nom" class="form-control"
+                 placeholder="Ex: Scientifiques, Litteraires..." required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select name="type" class="form-control">
+            {% for code, label in types %}
+            <option value="{{ code }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ordre d'affichage</label>
+          <input type="number" name="ordre" class="form-control"
+                 value="{{ groupes|length }}" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Obligatoire</label>
+          <select name="est_obligatoire" class="form-control">
+            <option value="1">Oui</option>
+            <option value="0">Non (facultatif)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Ordre</th>
+          <th>Nom</th>
+          <th>Type</th>
+          <th>Statut</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for groupe in groupes %}
+        <tr>
+          <td>{{ groupe.ordre }}</td>
+          <td><strong>{{ groupe.nom }}</strong></td>
+          <td>
+            <span class="badge badge-primary">
+              {{ groupe.get_type_display }}
+            </span>
+          </td>
+          <td>
+            {% if groupe.est_obligatoire %}
+            <span class="badge badge-success">Obligatoire</span>
+            {% else %}
+            <span class="badge badge-warning">Facultatif</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="post" style="display:inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="supprimer">
+              <input type="hidden" name="groupe_id" value="{{ groupe.pk }}">
+              <button type="submit" class="btn btn-danger btn-sm"
+                      onclick="return confirm('Supprimer ?')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" style="text-align:center;
+              color:var(--text-muted);padding:30px">
+            Aucun groupe. Ajoutez Scientifiques, Litteraires, Facultatives...
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

@@ -46,6 +46,13 @@
       {% if request.user.role in 'DIRECTEUR CENSEUR' %}
       <div class="sidebar-section">
         <div class="sidebar-section-label">Administration</div>
+        {% if request.user.role == 'DIRECTEUR' or request.user.role == 'CENSEUR' %}
+        <a href="{% url 'parametres' %}"
+           class="nav-item {% if '/parametres/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-cog"></i></span>
+          <span>Parametres</span>
+        </a>
+        {% endif %}
         <a href="/personnel/"
            class="nav-item {% if '/personnel/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-users"></i></span>

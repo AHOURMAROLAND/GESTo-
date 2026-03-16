@@ -54,10 +54,21 @@ document.addEventListener('click', function(e) {
   if (d && !d.contains(e.target)) d.classList.remove('open');
 });
 
-// ── SIDEBAR MOBILE ─────────────────────────────────────────────
+// ── SIDEBAR DESKTOP ET MOBILE ──────────────────────────────────
 function toggleSidebar() {
-  const s = document.querySelector('.sidebar');
-  if (s) s.classList.toggle('open');
+  const sidebar = document.querySelector('.sidebar');
+  const content = document.querySelector('.main-content');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  if (sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+    if (content) content.style.marginLeft = 'var(--sidebar-width)';
+    if (overlay) overlay.style.display = 'none';
+  } else {
+    sidebar.classList.add('collapsed');
+    if (content) content.style.marginLeft = '0';
+    if (overlay) overlay.style.display = 'none';
+  }
 }
 
 // ── SPINNER ────────────────────────────────────────────────────

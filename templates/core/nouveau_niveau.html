@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Nouveau niveau{% endblock %}
+{% block page_title %}Nouveau niveau{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Nouveau niveau scolaire</h1></div>
+  <a href="{% url 'liste_niveaux' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+<div class="card" style="max-width:500px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Nom du niveau</label>
+        <input type="text" name="nom" class="form-control"
+               placeholder="Ex: 6eme, 5eme, Terminale..." required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ordre d'affichage</label>
+        <input type="number" name="ordre" class="form-control"
+               value="0" min="0">
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">
+          0 = premier, 1 = deuxieme... Les niveaux sont tries par ordre croissant.
+        </p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type d'ecole</label>
+        <select name="type_ecole" class="form-control">
+          <option value="PRIVE">Prive</option>
+          <option value="PUBLIC">Public</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Systeme de notation</label>
+        <select name="systeme" class="form-control">
+          <option value="TRIMESTRIEL">Trimestriel (T1/T2/T3)</option>
+          <option value="SEMESTRIEL">Semestriel (S1/S2)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description (optionnel)</label>
+        <input type="text" name="description" class="form-control"
+               placeholder="Ex: College prive catholique">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Creer
+        </button>
+        <a href="{% url 'liste_niveaux' %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

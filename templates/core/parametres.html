@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Parametres{% endblock %}
+{% block page_title %}Parametres de l'ecole{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Parametres</h1>
+    <p>Configuration generale de l'etablissement</p>
+  </div>
+</div>
+
+<div class="grid-2 mb-4">
+
+  <div class="card">
+    <div class="card-header">
+      <h5><i class="fas fa-school" style="color:var(--primary)"></i>
+        Configuration ecole</h5>
+      {% if request.user.role == 'DIRECTEUR' %}
+      <a href="{% url 'modifier_config_ecole' %}" class="btn btn-primary btn-sm">
+        <i class="fas fa-edit"></i> Modifier
+      </a>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      <table class="table">
+        <tr>
+          <td style="color:var(--text-muted);width:140px">Nom</td>
+          <td><strong>{{ config.nom }}</strong></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Type</td>
+          <td>{{ config.get_type_ecole_display }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Systeme</td>
+          <td>{{ config.get_systeme_defaut_display }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Region</td>
+          <td>{{ config.region|default:"—" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Telephone</td>
+          <td>{{ config.telephone|default:"—" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">WhatsApp</td>
+          <td>{{ config.wa_numero_source|default:"Non configure" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Devise</td>
+          <td>{{ config.devise|default:"—" }}</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <div class="card">
+      <div class="card-header">
+        <h5><i class="fas fa-calendar" style="color:var(--primary)"></i>
+          Annees scolaires</h5>
+        <a href="{% url 'liste_annees' %}" class="btn btn-secondary btn-sm">
+          Gerer
+        </a>
+      </div>
+      <div class="card-body">
+        {% if annee_active %}
+        <div class="badge badge-success" style="font-size:13px;padding:6px 14px">
+          <i class="fas fa-check-circle"></i> {{ annee_active.nom }} — Active
+        </div>
+        {% else %}
+        <div class="badge badge-danger" style="font-size:13px;padding:6px 14px">
+          Aucune annee active
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h5><i class="fas fa-clock" style="color:var(--primary)"></i>
+          Periode en cours</h5>
+        <a href="{% url 'liste_periodes' %}" class="btn btn-secondary btn-sm">
+          Gerer
+        </a>
+      </div>
+      <div class="card-body">
+        {% if periode_active %}
+        <div class="badge badge-success" style="font-size:13px;padding:6px 14px">
+          <i class="fas fa-check-circle"></i>
+          {{ periode_active }} — Active
+        </div>
+        {% else %}
+        <div class="badge badge-warning" style="font-size:13px;padding:6px 14px">
+          Aucune periode active
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h5><i class="fas fa-layer-group" style="color:var(--primary)"></i>
+          Niveaux scolaires</h5>
+        <a href="{% url 'liste_niveaux' %}" class="btn btn-secondary btn-sm">
+          Gerer
+        </a>
+      </div>
+      <div class="card-body">
+        <a href="{% url 'liste_niveaux' %}" style="text-decoration:none">
+          <div style="font-size:24px;font-weight:700;color:var(--primary)">
+            {{ config.nom }}
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:4px">
+            Voir et gerer les niveaux
+          </div>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

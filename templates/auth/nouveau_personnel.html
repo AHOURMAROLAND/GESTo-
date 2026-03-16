@@ -1,80 +1,57 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>GESTo — Nouveau personnel</title>
-  <style>
-    body{font-family:Arial,sans-serif;background:#F1F5F9;padding:40px}
-    .card{background:#fff;border-radius:12px;padding:32px;
-          max-width:600px;margin:auto;border:1px solid #E2E8F0}
-    h2{color:#1E40AF;margin-bottom:24px}
-    .field{margin-bottom:16px}
-    .field label{display:block;font-size:13px;font-weight:600;
-                 color:#374151;margin-bottom:6px}
-    .field input,.field select{width:100%;padding:10px 14px;
-      border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;
-      outline:none;box-sizing:border-box;background:#FAFAFA}
-    .field input:focus,.field select:focus{border-color:#1E40AF;background:#fff}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    .btn{padding:11px 24px;background:#1E40AF;color:#fff;border:none;
-         border-radius:8px;font-size:14px;cursor:pointer;margin-right:10px}
-    .btn-sec{padding:11px 24px;background:#F1F5F9;color:#374151;
-             border:1px solid #E2E8F0;border-radius:8px;font-size:14px;
-             cursor:pointer;text-decoration:none}
-    .msg-ok{background:#DCFCE7;color:#166534;padding:12px;
-            border-radius:8px;font-size:13px;margin-bottom:16px}
-  </style>
-</head>
-<body>
-<div class="card">
-  <h2>Nouveau membre du personnel</h2>
-  {% for msg in messages %}
-  <div class="msg-ok">{{ msg }}</div>
-  {% endfor %}
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <div class="row">
-      <div class="field">
-        <label>Prenom <span style="color:red">*</span></label>
-        <input type="text" name="first_name" required>
+{% extends 'base.html' %}
+{% block title %}Nouveau personnel{% endblock %}
+{% block page_title %}Nouveau membre du personnel{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:600px;margin:auto">
+  <div class="card-header">
+    <h5>Créer un compte</h5>
+  </div>
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Prénom <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="first_name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nom <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" name="last_name" required>
+        </div>
       </div>
-      <div class="field">
-        <label>Nom <span style="color:red">*</span></label>
-        <input type="text" name="last_name" required>
+      <div class="form-group">
+        <label class="form-label">Rôle <span class="text-danger">*</span></label>
+        <select class="form-control" name="role" required>
+          <option value="">Choisir un rôle...</option>
+          {% for code, label in roles %}
+          <option value="{{ code }}">{{ label }}</option>
+          {% endfor %}
+        </select>
       </div>
-    </div>
-    <div class="field">
-      <label>Role <span style="color:red">*</span></label>
-      <select name="role" required>
-        <option value="">Choisir un role...</option>
-        {% for code, label in roles %}
-        <option value="{{ code }}">{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="row">
-      <div class="field">
-        <label>Telephone</label>
-        <input type="text" name="telephone" placeholder="+228XXXXXXXX">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Téléphone</label>
+          <input type="text" class="form-control" name="telephone" placeholder="+228XXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp</label>
+          <input type="text" class="form-control" name="telephone_wa" placeholder="+228XXXXXXXX">
+        </div>
       </div>
-      <div class="field">
-        <label>WhatsApp</label>
-        <input type="text" name="telephone_wa" placeholder="+228XXXXXXXX">
+      <div class="form-group">
+        <label class="form-label">Spécialité / Matière</label>
+        <input type="text" class="form-control" name="specialite" placeholder="Ex: Mathématiques">
       </div>
-    </div>
-    <div class="field">
-      <label>Specialite / Matiere</label>
-      <input type="text" name="specialite" placeholder="Ex: Mathematiques">
-    </div>
-    <div class="field">
-      <label>Photo</label>
-      <input type="file" name="photo" accept="image/*">
-    </div>
-    <div style="margin-top:8px">
-      <button type="submit" class="btn">Creer le compte</button>
-      <a href="{% url 'liste_personnel' %}" class="btn-sec">Annuler</a>
-    </div>
-  </form>
+      <div class="form-group">
+        <label class="form-label">Photo</label>
+        <input type="file" class="form-control" name="photo" accept="image/*">
+      </div>
+      <div class="mt-4">
+        <button type="submit" class="btn btn-primary">Créer le compte</button>
+        <a href="{% url 'liste_personnel' %}" class="btn btn-secondary" style="margin-left:8px">Annuler</a>
+      </div>
+    </form>
+  </div>
 </div>
-</body>
-</html>
+{% endblock %}

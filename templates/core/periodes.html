@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Periodes{% endblock %}
+{% block page_title %}Periodes{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Periodes</h1>
+    <p>
+      {% if annee %}Annee {{ annee.nom }}
+      {% else %}Aucune annee active{% endif %}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px">
+    {% if annee %}
+    <a href="{% url 'nouvelle_periode' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouvelle periode
+    </a>
+    {% endif %}
+    <a href="{% url 'parametres' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+{% if not annee %}
+<div class="alert alert-warning">
+  <i class="fas fa-exclamation-triangle"></i>
+  Aucune annee scolaire active.
+  <a href="{% url 'liste_annees' %}">Activez une annee</a> d'abord.
+</div>
+{% else %}
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Periode</th>
+        <th>Type</th>
+        <th>Date debut</th>
+        <th>Date fin</th>
+        <th>Statut</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in periodes %}
+      <tr>
+        <td><strong>{{ p }}</strong></td>
+        <td>
+          <span class="badge badge-primary">
+            {{ p.get_type_display }}
+          </span>
+        </td>
+        <td>{{ p.date_debut|date:"d/m/Y"|default:"—" }}</td>
+        <td>{{ p.date_fin|date:"d/m/Y"|default:"—" }}</td>
+        <td>
+          {% if p.est_active %}
+          <span class="badge badge-success">Active</span>
+          {% else %}
+          <span class="badge badge-gray">Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if not p.est_active %}
+          <form method="post"
+                action="{% url 'activer_periode' p.pk %}"
+                style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-sm">
+              Activer
+            </button>
+          </form>
+          {% else %}
+          <span style="color:var(--text-muted);font-size:13px">Active</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;color:var(--text-muted);
+            padding:30px">
+          Aucune periode. Creez la premiere periode.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}

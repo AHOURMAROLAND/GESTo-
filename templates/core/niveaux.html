@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Niveaux{% endblock %}
+{% block page_title %}Niveaux scolaires{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Niveaux scolaires</h1>
+    <p>Configurez les niveaux de votre etablissement</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'nouveau_niveau' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouveau niveau
+    </a>
+    <a href="{% url 'parametres' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Ordre</th>
+        <th>Nom</th>
+        <th>Type</th>
+        <th>Systeme</th>
+        <th>Salles actives</th>
+        <th>Groupes matieres</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for niveau in niveaux %}
+      <tr>
+        <td style="color:var(--text-muted)">{{ niveau.ordre }}</td>
+        <td><strong>{{ niveau.nom }}</strong></td>
+        <td>
+          <span class="badge badge-primary">
+            {{ niveau.get_type_ecole_display }}
+          </span>
+        </td>
+        <td>
+          <span class="badge badge-info">
+            {{ niveau.get_systeme_display }}
+          </span>
+        </td>
+        <td>{{ niveau.nb_salles_actives }}</td>
+        <td>
+          <a href="{% url 'groupes_matieres' niveau.pk %}"
+             class="btn btn-secondary btn-sm">
+            <i class="fas fa-layer-group"></i> Groupes
+          </a>
+        </td>
+        <td style="display:flex;gap:6px">
+          <a href="{% url 'modifier_niveau' niveau.pk %}"
+             class="btn btn-secondary btn-sm">
+            <i class="fas fa-edit"></i>
+          </a>
+          <form method="post"
+                action="{% url 'supprimer_niveau' niveau.pk %}"
+                style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm"
+                    onclick="return confirm('Supprimer le niveau {{ niveau.nom }} ?')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:var(--text-muted);
+            padding:30px">
+          Aucun niveau. Creez le premier niveau (ex: 6eme, 5eme...).
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

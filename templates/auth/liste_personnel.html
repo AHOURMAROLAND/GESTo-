@@ -1,92 +1,63 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>GESTo — Personnel</title>
-  <style>
-    body{font-family:Arial,sans-serif;background:#F1F5F9;padding:30px}
-    .header{display:flex;justify-content:space-between;align-items:center;
-            margin-bottom:24px}
-    h2{color:#1E40AF}
-    .btn{padding:10px 18px;background:#1E40AF;color:#fff;border:none;
-         border-radius:8px;font-size:13px;cursor:pointer;text-decoration:none}
-    .filters{display:flex;gap:10px;margin-bottom:20px}
-    .filters input,.filters select{padding:9px 12px;border:1.5px solid #E2E8F0;
-      border-radius:8px;font-size:13px;outline:none}
-    .filters input:focus,.filters select:focus{border-color:#1E40AF}
-    table{width:100%;border-collapse:collapse;background:#fff;
-          border-radius:10px;overflow:hidden;border:1px solid #E2E8F0}
-    th{background:#1E40AF;color:#fff;padding:11px 14px;
-       text-align:left;font-size:13px}
-    td{padding:10px 14px;font-size:13px;border-bottom:1px solid #F1F5F9;
-       color:#374151}
-    tr:hover td{background:#F8FAFC}
-    .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
-    .actif{background:#DCFCE7;color:#166534}
-    .inactif{background:#FEE2E2;color:#991B1B}
-    a.lien{color:#1E40AF;text-decoration:none;font-weight:600}
-  </style>
-</head>
-<body>
-<div class="header">
+{% extends 'base.html' %}
+{% block title %}Personnel{% endblock %}
+{% block page_title %}Personnel ({{ total }}){% endblock %}
+
+{% block content %}
+<div class="page-header">
   <div>
-    <h2>Personnel ({{ total }})</h2>
-    <p style="font-size:13px;color:#64748B">
-      Complexe Scolaire Ste Bakhita
-    </p>
+    <h1>Personnel</h1>
+    <p>Complexe Scolaire Ste Bakhita</p>
   </div>
-  <a href="{% url 'nouveau_personnel' %}" class="btn">+ Nouveau</a>
+  <a href="{% url 'nouveau_personnel' %}" class="btn btn-primary">+ Nouveau</a>
 </div>
 
-<form method="get" class="filters">
-  <input type="text" name="q" value="{{ q }}"
-         placeholder="Rechercher un nom...">
-  <select name="role" onchange="this.form.submit()">
-    <option value="">Tous les roles</option>
+<form method="get" class="d-flex gap-2 mb-4">
+  <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="Rechercher un nom..." style="max-width:250px">
+  <select class="form-control" name="role" onchange="this.form.submit()" style="max-width:200px">
+    <option value="">Tous les rôles</option>
     {% for code, label in roles %}
-    <option value="{{ code }}" {% if role_filter == code %}selected{% endif %}>
-      {{ label }}
-    </option>
+    <option value="{{ code }}" {% if role_filter == code %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
-  <button type="submit" class="btn">Filtrer</button>
+  <button type="submit" class="btn btn-secondary">Filtrer</button>
 </form>
 
-<table>
-  <thead>
-    <tr>
-      <th>Nom complet</th>
-      <th>Role</th>
-      <th>Username</th>
-      <th>Telephone</th>
-      <th>Statut</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for p in personnel %}
-    <tr>
-      <td><strong>{{ p.nom_complet }}</strong></td>
-      <td>{{ p.get_role_display }}</td>
-      <td style="color:#64748B">{{ p.username }}</td>
-      <td>{{ p.telephone|default:"—" }}</td>
-      <td>
-        <span class="badge {% if p.is_active %}actif{% else %}inactif{% endif %}">
-          {% if p.is_active %}Actif{% else %}Inactif{% endif %}
-        </span>
-      </td>
-      <td>
-        <a href="{% url 'detail_personnel' p.pk %}" class="lien">Voir</a>
-      </td>
-    </tr>
-    {% empty %}
-    <tr>
-      <td colspan="6" style="text-align:center;color:#94A3B8;padding:30px">
-        Aucun personnel trouve.
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-</body>
-</html>
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Nom complet</th>
+        <th>Rôle</th>
+        <th>Username</th>
+        <th>Téléphone</th>
+        <th>Statut</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in personnel %}
+      <tr>
+        <td><strong>{{ p.nom_complet }}</strong></td>
+        <td>{{ p.get_role_display }}</td>
+        <td class="text-muted">{{ p.username }}</td>
+        <td>{{ p.telephone|default:"—" }}</td>
+        <td>
+          <span class="badge {% if p.is_active %}badge-success{% else %}badge-danger{% endif %}">
+            {% if p.is_active %}Actif{% else %}Inactif{% endif %}
+          </span>
+        </td>
+        <td>
+          <a href="{% url 'detail_personnel' p.pk %}" class="text-primary fw-600" style="text-decoration:none">Voir</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">
+          Aucun personnel trouvé.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

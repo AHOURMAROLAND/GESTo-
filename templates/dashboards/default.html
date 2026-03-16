@@ -1,30 +1,22 @@
 {% extends 'base.html' %}
-
 {% block title %}Tableau de bord{% endblock %}
 {% block page_title %}Tableau de bord{% endblock %}
-
 {% block content %}
 <div class="page-header">
   <div>
     <h1>Bonjour, {{ request.user.first_name|default:request.user.username }}</h1>
-    <p>
-      {{ request.user.get_role_display }} —
-      {% if annee_active %}
-        Annee {{ annee_active.nom }}
-      {% else %}
-        Aucune annee active
-      {% endif %}
+    <p>{{ request.user.get_role_display }}
+      {% if annee_active %} — {{ annee_active.nom }}{% endif %}
     </p>
   </div>
 </div>
-
 <div class="grid-4 mb-4">
   <div class="stat-card">
     <div class="stat-icon" style="background:#DBEAFE">
       <i class="fas fa-user-graduate" style="color:#1E40AF"></i>
     </div>
     <div class="stat-info">
-      <div class="stat-value">—</div>
+      <div class="stat-value">{{ nb_eleves }}</div>
       <div class="stat-label">Eleves inscrits</div>
     </div>
   </div>
@@ -33,7 +25,7 @@
       <i class="fas fa-school" style="color:#16A34A"></i>
     </div>
     <div class="stat-info">
-      <div class="stat-value">—</div>
+      <div class="stat-value">{{ nb_salles }}</div>
       <div class="stat-label">Salles actives</div>
     </div>
   </div>
@@ -42,7 +34,7 @@
       <i class="fas fa-users" style="color:#854D0E"></i>
     </div>
     <div class="stat-info">
-      <div class="stat-value">—</div>
+      <div class="stat-value">{{ nb_personnel }}</div>
       <div class="stat-label">Personnel</div>
     </div>
   </div>
@@ -56,24 +48,23 @@
     </div>
   </div>
 </div>
-
 <div class="card">
   <div class="card-header">
-    <h5>Bienvenue sur GESTo</h5>
+    <h5>Acces rapide</h5>
   </div>
   <div class="card-body">
-    <p style="color:var(--text-muted);font-size:13px">
-      GESTo v3 — Complexe Scolaire Ste Bakhita — E3 Layout OK (14%)
-    </p>
-    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
-      <a href="/personnel/" class="btn btn-primary">
-        <i class="fas fa-users"></i> Personnel
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      {% if request.user.role == 'DIRECTEUR' or request.user.role == 'CENSEUR' %}
+      <a href="{% url 'parametres' %}" class="btn btn-primary">
+        <i class="fas fa-cog"></i> Parametres
       </a>
-      {% if request.user.is_staff %}
-      <a href="/admin/" class="btn btn-secondary">
-        <i class="fas fa-cog"></i> Admin Django
+      <a href="{% url 'liste_niveaux' %}" class="btn btn-secondary">
+        <i class="fas fa-layer-group"></i> Niveaux
       </a>
       {% endif %}
+      <a href="{% url 'liste_personnel' %}" class="btn btn-secondary">
+        <i class="fas fa-users"></i> Personnel
+      </a>
     </div>
   </div>
 </div>

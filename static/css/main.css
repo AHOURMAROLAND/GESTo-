@@ -180,13 +180,23 @@ body {
 }
 
 .navbar-toggle {
-  display: none;
+  display: flex;
   background: none;
   border: none;
   cursor: pointer;
   color: var(--text-main);
   font-size: 20px;
   padding: 4px;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.navbar-toggle:hover {
+  background: var(--bg-page);
 }
 
 .navbar-title {
@@ -656,3 +666,12 @@ body {
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* Sidebar pliable sur desktop */
+.sidebar.collapsed {
+  transform: translateX(-100%);
+}
+
+.main-content {
+  transition: margin-left 0.3s;
+}

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Nouvelle periode{% endblock %}
+{% block page_title %}Nouvelle periode{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Nouvelle periode</h1>
+    <p>Annee {{ annee.nom }}</p>
+  </div>
+  <a href="{% url 'liste_periodes' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+<div class="card" style="max-width:500px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select name="type" class="form-control" id="type-select"
+                onchange="updateNumeros()">
+          <option value="TRIMESTRE">Trimestre</option>
+          <option value="SEMESTRE">Semestre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Numero</label>
+        <select name="numero" class="form-control" id="numero-select">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Date debut</label>
+          <input type="date" name="date_debut" class="form-control">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date fin</label>
+          <input type="date" name="date_fin" class="form-control">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Creer
+        </button>
+        <a href="{% url 'liste_periodes' %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function updateNumeros() {
+  const type = document.getElementById('type-select').value;
+  const sel = document.getElementById('numero-select');
+  sel.innerHTML = '';
+  const max = type === 'SEMESTRE' ? 2 : 3;
+  for (let i = 1; i <= max; i++) {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = i;
+    sel.appendChild(opt);
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Annees scolaires{% endblock %}
+{% block page_title %}Annees scolaires{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Annees scolaires</h1>
+    <p>Gestion des annees scolaires</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'nouvelle_annee' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouvelle annee
+    </a>
+    <a href="{% url 'parametres' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Annee</th>
+        <th>Date debut</th>
+        <th>Date fin</th>
+        <th>Statut</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for annee in annees %}
+      <tr>
+        <td><strong>{{ annee.nom }}</strong></td>
+        <td>{{ annee.date_debut|date:"d/m/Y"|default:"—" }}</td>
+        <td>{{ annee.date_fin|date:"d/m/Y"|default:"—" }}</td>
+        <td>
+          {% if annee.est_active %}
+          <span class="badge badge-success">Active</span>
+          {% else %}
+          <span class="badge badge-gray">Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if not annee.est_active %}
+          <form method="post"
+                action="{% url 'activer_annee' annee.pk %}"
+                style="display:inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary btn-sm">
+              Activer
+            </button>
+          </form>
+          {% else %}
+          <span style="color:var(--text-muted);font-size:13px">Deja active</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align:center;color:var(--text-muted);
+            padding:30px">
+          Aucune annee creee. Creez la premiere annee scolaire.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
