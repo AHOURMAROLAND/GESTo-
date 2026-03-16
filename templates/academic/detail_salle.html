@@ -1,0 +1,308 @@
+{% extends 'base.html' %}
+{% block title %}{{ salle.nom }}{% endblock %}
+{% block page_title %}{{ salle.nom }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ salle.nom }}</h1>
+    <p>
+      {{ salle.niveau.nom }} —
+      {{ salle.annee.nom }} —
+      {{ effectif }} eleve(s) / {{ salle.capacite }}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px">
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    <a href="{% url 'modifier_salle' salle.pk %}" class="btn btn-secondary">
+      <i class="fas fa-edit"></i> Modifier
+    </a>
+    {% endif %}
+    <a href="{% url 'liste_salles' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Infos salle -->
+  <div class="card">
+    <div class="card-header"><h5>Informations</h5></div>
+    <div class="card-body">
+      <table class="table">
+        <tr>
+          <td style="color:var(--text-muted);width:140px">Niveau</td>
+          <td><strong>{{ salle.niveau.nom }}</strong></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Systeme</td>
+          <td>{{ salle.niveau.get_systeme_display }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Titulaire</td>
+          <td>{{ salle.titulaire.nom_complet|default:"Non assigne" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Capacite</td>
+          <td>{{ salle.capacite }} places</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Effectif</td>
+          <td>
+            <strong>{{ effectif }}</strong> eleve(s)
+            {% if salle.capacite > 0 %}
+            <span style="color:var(--text-muted);font-size:12px">
+              ({% widthratio effectif salle.capacite 100 %}%)
+            </span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Batiment</td>
+          <td>{{ salle.batiment|default:"—" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Statut</td>
+          <td>
+            {% if salle.est_active %}
+            <span class="badge badge-success">Active</span>
+            {% else %}
+            <span class="badge badge-danger">Inactive</span>
+            {% endif %}
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Ajouter matiere -->
+  {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+  <div class="card">
+    <div class="card-header">
+      <h5>Ajouter une matiere</h5>
+    </div>
+    <div class="card-body">
+      <form method="post" action="{% url 'ajouter_matiere_salle' salle.pk %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Matiere</label>
+          <select name="matiere_id" class="form-control" required>
+            <option value="">Choisir...</option>
+            {% for m in matieres_dispo %}
+            <option value="{{ m.pk }}">{{ m.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Groupe</label>
+          <select name="groupe_id" class="form-control">
+            <option value="">Sans groupe</option>
+            {% for g in groupes %}
+            <option value="{{ g.pk }}">{{ g.nom }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Coefficient</label>
+            <input type="number" name="coefficient" class="form-control"
+                   value="1" min="0.5" step="0.5">
+          </div>
+          <div class="form-group">
+            <label class="form-label">H/semaine</label>
+            <input type="number" name="heures_semaine" class="form-control"
+                   value="2" min="0.5" step="0.5">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Professeur</label>
+          <select name="professeur_id" class="form-control">
+            <option value="">Non assigne</option>
+            {% for prof in professeurs %}
+            <option value="{{ prof.pk }}">
+              {{ prof.nom_complet }}
+              {% if prof.specialite %}({{ prof.specialite }}){% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Liste matieres -->
+<div class="card" style="margin-top:20px">
+  <div class="card-header">
+    <h5>Matieres de la salle ({{ matieres_salle.count }})</h5>
+  </div>
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Matiere</th>
+          <th>Groupe</th>
+          <th>Professeur</th>
+          <th>Coeff</th>
+          <th>H/sem</th>
+          <th>Type</th>
+          {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+          <th>Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for ms in matieres_salle %}
+        <tr>
+          <td><strong>{{ ms.matiere.nom }}</strong></td>
+          <td>
+            {% if ms.groupe %}
+            <span class="badge badge-info">{{ ms.groupe.nom }}</span>
+            {% else %}
+            <span style="color:var(--text-muted)">—</span>
+            {% endif %}
+          </td>
+          <td>{{ ms.professeur.nom_complet|default:"Non assigne" }}</td>
+          <td>
+            <strong style="color:var(--primary)">{{ ms.coefficient }}</strong>
+          </td>
+          <td>{{ ms.heures_semaine }}h</td>
+          <td>
+            {% if ms.est_facultative %}
+            <span class="badge badge-warning">Facultatif</span>
+            {% else %}
+            <span class="badge badge-success">Obligatoire</span>
+            {% endif %}
+          </td>
+          {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+          <td style="display:flex;gap:6px">
+            <button class="btn btn-secondary btn-sm"
+                    onclick="ouvrirModif(
+                      {{ ms.pk }},
+                      '{{ ms.matiere.nom }}',
+                      '{{ ms.professeur.pk|default:'' }}',
+                      '{{ ms.groupe.pk|default:'' }}',
+                      {{ ms.coefficient }},
+                      {{ ms.heures_semaine }},
+                      {{ ms.est_facultative|yesno:'true,false' }}
+                    )">
+              <i class="fas fa-edit"></i>
+            </button>
+            <form method="post"
+                  action="{% url 'supprimer_matiere_salle' ms.pk %}"
+                  style="display:inline">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm"
+                      onclick="return confirm(
+                        'Supprimer {{ ms.matiere.nom }} de cette salle ?'
+                      )">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align:center;
+              color:var(--text-muted);padding:24px">
+            Aucune matiere assignee a cette salle.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal modifier matiere -->
+{% if request.user.role in 'DIRECTEUR CENSEUR' %}
+<div id="modal-modif" style="display:none;position:fixed;inset:0;
+     background:rgba(0,0,0,0.4);z-index:2000;
+     align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border-radius:12px;padding:24px;
+              width:100%;max-width:440px;margin:20px">
+    <h3 style="font-size:15px;margin-bottom:16px;color:var(--text-main)">
+      Modifier — <span id="modal-titre"></span>
+    </h3>
+    <form method="post" id="form-modif">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Groupe</label>
+        <select name="groupe_id" class="form-control" id="modal-groupe">
+          <option value="">Sans groupe</option>
+          {% for g in groupes %}
+          <option value="{{ g.pk }}">{{ g.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Coefficient</label>
+          <input type="number" name="coefficient" class="form-control"
+                 id="modal-coeff" min="0.5" step="0.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">H/semaine</label>
+          <input type="number" name="heures_semaine" class="form-control"
+                 id="modal-heures" min="0.5" step="0.5">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Professeur</label>
+        <select name="professeur_id" class="form-control" id="modal-prof">
+          <option value="">Non assigne</option>
+          {% for prof in professeurs %}
+          <option value="{{ prof.pk }}">{{ prof.nom_complet }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select name="est_facultative" class="form-control" id="modal-fac">
+          <option value="0">Obligatoire</option>
+          <option value="1">Facultatif</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+        <button type="button" class="btn btn-secondary"
+                onclick="fermerModal()">
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function ouvrirModif(pk, nom, profPk, groupePk, coeff, heures, fac) {
+  document.getElementById('modal-titre').textContent = nom;
+  document.getElementById('form-modif').action =
+    '/salles/matieres-salle/' + pk + '/modifier/';
+  document.getElementById('modal-prof').value = profPk || '';
+  document.getElementById('modal-groupe').value = groupePk || '';
+  document.getElementById('modal-coeff').value = coeff;
+  document.getElementById('modal-heures').value = heures;
+  document.getElementById('modal-fac').value = fac ? '1' : '0';
+  const modal = document.getElementById('modal-modif');
+  modal.style.display = 'flex';
+}
+function fermerModal() {
+  document.getElementById('modal-modif').style.display = 'none';
+}
+document.getElementById('modal-modif').addEventListener('click', function(e) {
+  if (e.target === this) fermerModal();
+});
+</script>
+{% endblock %}

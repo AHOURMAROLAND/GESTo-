@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Modifier {{ salle.nom }}{% endblock %}
+{% block page_title %}Modifier la salle{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Modifier — {{ salle.nom }}</h1>
+    <p>{{ salle.niveau.nom }} — {{ salle.annee.nom }}</p>
+  </div>
+  <a href="{% url 'detail_salle' salle.pk %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+<div class="card" style="max-width:560px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Nom de la salle</label>
+        <input type="text" name="nom" class="form-control"
+               value="{{ salle.nom }}" required>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Capacite</label>
+          <input type="number" name="capacite" class="form-control"
+                 value="{{ salle.capacite }}" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Batiment</label>
+          <input type="text" name="batiment" class="form-control"
+                 value="{{ salle.batiment }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Professeur titulaire</label>
+        <select name="titulaire_id" class="form-control">
+          <option value="">Aucun titulaire</option>
+          {% for prof in professeurs %}
+          <option value="{{ prof.pk }}"
+            {% if salle.titulaire and salle.titulaire.pk == prof.pk %}
+            selected{% endif %}>
+            {{ prof.nom_complet }}
+            {% if prof.specialite %}({{ prof.specialite }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Statut</label>
+        <select name="est_active" class="form-control">
+          <option value="1" {% if salle.est_active %}selected{% endif %}>
+            Active
+          </option>
+          <option value="0" {% if not salle.est_active %}selected{% endif %}>
+            Inactive
+          </option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+        <a href="{% url 'detail_salle' salle.pk %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

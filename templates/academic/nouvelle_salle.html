@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}Nouvelle salle{% endblock %}
+{% block page_title %}Nouvelle salle de classe{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Nouvelle salle</h1>
+    <p>Annee {{ annee.nom }}</p>
+  </div>
+  <a href="{% url 'liste_salles' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+<div class="card" style="max-width:560px">
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">
+          Niveau <span style="color:red">*</span>
+        </label>
+        <select name="niveau_id" class="form-control" required>
+          <option value="">Choisir un niveau...</option>
+          {% for n in niveaux %}
+          <option value="{{ n.pk }}">{{ n.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Nom de la salle <span style="color:red">*</span>
+        </label>
+        <input type="text" name="nom" class="form-control"
+               placeholder="Ex: 6eme1, 5emeA, TerminaleC..." required>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">
+          Le nom sera combine avec le niveau. Ex: niveau 6eme + nom 1 = 6eme1
+        </p>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Capacite</label>
+          <input type="number" name="capacite" class="form-control"
+                 value="40" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Batiment (optionnel)</label>
+          <input type="text" name="batiment" class="form-control"
+                 placeholder="Ex: Bloc A">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Professeur titulaire</label>
+        <select name="titulaire_id" class="form-control">
+          <option value="">Aucun titulaire</option>
+          {% for prof in professeurs %}
+          <option value="{{ prof.pk }}">
+            {{ prof.nom_complet }}
+            {% if prof.specialite %}({{ prof.specialite }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Creer la salle
+        </button>
+        <a href="{% url 'liste_salles' %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

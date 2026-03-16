@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Salles de classe{% endblock %}
+{% block page_title %}Salles de classe{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Salles de classe</h1>
+    <p>
+      {% if annee %}Annee {{ annee.nom }}
+      {% else %}Aucune annee active{% endif %}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'liste_matieres' %}" class="btn btn-secondary">
+      <i class="fas fa-book"></i> Matieres
+    </a>
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    <a href="{% url 'nouvelle_salle' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouvelle salle
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+{% if not annee %}
+<div class="alert alert-warning">
+  <i class="fas fa-exclamation-triangle"></i>
+  Aucune annee active.
+  <a href="{% url 'liste_annees' %}">Activez une annee</a> d'abord.
+</div>
+{% else %}
+
+<!-- Filtre par niveau -->
+<form method="get" style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+  <select name="niveau" class="form-control" style="max-width:200px"
+          onchange="this.form.submit()">
+    <option value="">Tous les niveaux</option>
+    {% for n in niveaux %}
+    <option value="{{ n.pk }}"
+      {% if niveau_filtre == n.pk|stringformat:"s" %}selected{% endif %}>
+      {{ n.nom }}
+    </option>
+    {% endfor %}
+  </select>
+  {% if niveau_filtre %}
+  <a href="{% url 'liste_salles' %}" class="btn btn-secondary">
+    Tout afficher
+  </a>
+  {% endif %}
+</form>
+
+<!-- Grille de salles -->
+<div class="grid-3">
+  {% for salle in salles %}
+  <div class="card" style="overflow:hidden">
+    <div style="background:var(--primary);padding:14px 16px;
+                display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#fff">
+          {{ salle.nom }}
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.7);margin-top:2px">
+          {{ salle.niveau.nom }}
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.15);border-radius:8px;
+                  padding:6px 12px;text-align:center">
+        <div style="font-size:20px;font-weight:700;color:#fff">
+          {{ salle.effectif }}
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.7)">
+          / {{ salle.capacite }}
+        </div>
+      </div>
+    </div>
+    <div class="card-body" style="padding:14px 16px">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">
+        <i class="fas fa-user-tie" style="width:16px"></i>
+        Titulaire :
+        <strong>
+          {{ salle.titulaire.nom_complet|default:"Non assigne" }}
+        </strong>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
+        <i class="fas fa-book" style="width:16px"></i>
+        {{ salle.matieres.count }} matiere(s)
+        {% if salle.batiment %}
+        &nbsp;|&nbsp;
+        <i class="fas fa-building" style="width:16px"></i>
+        {{ salle.batiment }}
+        {% endif %}
+      </div>
+
+      <!-- Barre remplissage -->
+      {% if salle.capacite > 0 %}
+      {% with pct=salle.effectif|add:0 %}
+      <div style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;
+                    font-size:11px;color:var(--text-muted);margin-bottom:4px">
+          <span>Remplissage</span>
+          <span>{{ salle.effectif }}/{{ salle.capacite }}</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill"
+               style="width:{% widthratio salle.effectif salle.capacite 100 %}%">
+          </div>
+        </div>
+      </div>
+      {% endwith %}
+      {% endif %}
+
+      <div style="display:flex;gap:8px">
+        <a href="{% url 'detail_salle' salle.pk %}"
+           class="btn btn-primary btn-sm" style="flex:1;justify-content:center">
+          <i class="fas fa-eye"></i> Voir
+        </a>
+        {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+        <a href="{% url 'modifier_salle' salle.pk %}"
+           class="btn btn-secondary btn-sm">
+          <i class="fas fa-edit"></i>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div style="grid-column:1/-1">
+    <div class="card card-body" style="text-align:center;
+         color:var(--text-muted);padding:40px">
+      <i class="fas fa-school" style="font-size:40px;margin-bottom:12px;
+         opacity:0.3"></i>
+      <p>Aucune salle pour cette annee.</p>
+      {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+      <a href="{% url 'nouvelle_salle' %}" class="btn btn-primary"
+         style="margin-top:12px">
+        <i class="fas fa-plus"></i> Creer la premiere salle
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
