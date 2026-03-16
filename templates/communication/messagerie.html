@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Messagerie{% endblock %}
+{% block page_title %}Messagerie{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Messagerie</h1>
+    <p>{{ nb_non_lus }} message(s) non lu(s)</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    <a href="{% url 'nouveau_communique' %}" class="btn btn-secondary">
+      <i class="fas fa-bullhorn"></i> Communique
+    </a>
+    {% endif %}
+    <a href="{% url 'nouveau_message' %}" class="btn btn-primary">
+      <i class="fas fa-pen"></i> Nouveau message
+    </a>
+  </div>
+</div>
+
+<!-- Onglets -->
+<div style="display:flex;gap:4px;margin-bottom:20px;
+            border-bottom:2px solid var(--border-color)">
+  <button onclick="showTab('recus')" id="tab-recus"
+          style="padding:10px 20px;border:none;background:none;
+                 cursor:pointer;font-size:13px;font-weight:600;
+                 color:var(--primary);border-bottom:2px solid var(--primary);
+                 margin-bottom:-2px">
+    <i class="fas fa-inbox"></i> Recus ({{ recus.count }})
+    {% if nb_non_lus > 0 %}
+    <span class="badge badge-danger" style="margin-left:4px">
+      {{ nb_non_lus }}
+    </span>
+    {% endif %}
+  </button>
+  <button onclick="showTab('envoyes')" id="tab-envoyes"
+          style="padding:10px 20px;border:none;background:none;
+                 cursor:pointer;font-size:13px;color:var(--text-muted)">
+    <i class="fas fa-paper-plane"></i> Envoyes ({{ envoyes.count }})
+  </button>
+  <button onclick="showTab('communiques')" id="tab-communiques"
+          style="padding:10px 20px;border:none;background:none;
+                 cursor:pointer;font-size:13px;color:var(--text-muted)">
+    <i class="fas fa-bullhorn"></i> Communiques ({{ communiques.count }})
+  </button>
+</div>
+
+<!-- Recus -->
+<div id="tab-recus-content">
+  <div class="card">
+    {% for msg in recus %}
+    <a href="{% url 'detail_message' msg.pk %}"
+       style="display:flex;align-items:flex-start;gap:12px;
+              padding:12px 20px;text-decoration:none;
+              border-bottom:1px solid var(--border-color);
+              {% if not msg.est_lu %}background:var(--primary-light){% endif %}">
+      <div style="width:36px;height:36px;border-radius:50%;
+                  background:var(--primary);color:#fff;
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:13px;font-weight:700;flex-shrink:0">
+        {{ msg.expediteur.first_name|slice:":1" }}{{ msg.expediteur.last_name|slice:":1" }}
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;
+                    align-items:center">
+          <span style="font-weight:600;color:var(--text-main);font-size:13px">
+            {{ msg.expediteur.nom_complet }}
+          </span>
+          <span style="font-size:11px;color:var(--text-muted)">
+            {{ msg.created_at|timesince }}
+          </span>
+        </div>
+        <div style="font-size:13px;color:var(--text-main);margin-top:2px">
+          {% if not msg.est_lu %}<strong>{% endif %}
+          {{ msg.sujet }}
+          {% if not msg.est_lu %}</strong>{% endif %}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+          {{ msg.contenu|truncatechars:80 }}
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <div style="text-align:center;color:var(--text-muted);padding:30px">
+      Aucun message recu.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Envoyes -->
+<div id="tab-envoyes-content" style="display:none">
+  <div class="card">
+    {% for msg in envoyes %}
+    <a href="{% url 'detail_message' msg.pk %}"
+       style="display:flex;align-items:flex-start;gap:12px;
+              padding:12px 20px;text-decoration:none;
+              border-bottom:1px solid var(--border-color)">
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-weight:600;color:var(--text-main);font-size:13px">
+            A : {{ msg.destinataire.nom_complet }}
+          </span>
+          <span style="font-size:11px;color:var(--text-muted)">
+            {{ msg.created_at|timesince }}
+          </span>
+        </div>
+        <div style="font-size:13px;color:var(--text-main);margin-top:2px">
+          {{ msg.sujet }}
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+          {% if msg.est_lu %}
+          <span style="color:var(--success)">
+            <i class="fas fa-check-double"></i> Lu
+          </span>
+          {% else %}
+          <span style="color:var(--text-muted)">
+            <i class="fas fa-check"></i> Envoye
+          </span>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+    {% empty %}
+    <div style="text-align:center;color:var(--text-muted);padding:30px">
+      Aucun message envoye.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Communiques -->
+<div id="tab-communiques-content" style="display:none">
+  <div class="card">
+    {% for com in communiques %}
+    <div style="padding:14px 20px;
+                border-bottom:1px solid var(--border-color)">
+      <div style="display:flex;justify-content:space-between;
+                  align-items:flex-start">
+        <div>
+          <div style="font-weight:600;font-size:13px">{{ com.sujet }}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:3px">
+            Par {{ com.expediteur.nom_complet }} —
+            {{ com.created_at|date:"d/m/Y" }} —
+            <span class="badge badge-info">
+              {{ com.get_cible_display }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--text-main);
+                  margin-top:8px;padding:10px;
+                  background:var(--bg-page);border-radius:6px">
+        {{ com.contenu|truncatechars:200 }}
+      </div>
+    </div>
+    {% empty %}
+    <div style="text-align:center;color:var(--text-muted);padding:30px">
+      Aucun communique.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function showTab(tab) {
+  ['recus', 'envoyes', 'communiques'].forEach(t => {
+    document.getElementById('tab-' + t + '-content').style.display =
+      t === tab ? 'block' : 'none';
+    const btn = document.getElementById('tab-' + t);
+    if (t === tab) {
+      btn.style.color = 'var(--primary)';
+      btn.style.borderBottom = '2px solid var(--primary)';
+      btn.style.marginBottom = '-2px';
+    } else {
+      btn.style.color = 'var(--text-muted)';
+      btn.style.borderBottom = 'none';
+      btn.style.marginBottom = '0';
+    }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Notifications</h1>
+    <p>{{ nb_non_lues }} non lue(s)</p>
+  </div>
+  {% if nb_non_lues > 0 %}
+  <form method="post" action="{% url 'tout_marquer_lu' %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-secondary">
+      <i class="fas fa-check-double"></i> Tout marquer lu
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  {% for notif in notifs %}
+  <div style="display:flex;align-items:flex-start;gap:14px;
+              padding:14px 20px;
+              border-bottom:1px solid var(--border-color);
+              {% if not notif.est_lue %}background:var(--primary-light){% endif %}">
+    <div style="width:36px;height:36px;border-radius:50%;flex-shrink:0;
+                display:flex;align-items:center;justify-content:center;
+                background:{% if notif.type == 'ALERTE' %}#FEE2E2
+                {% elif notif.type == 'SUCCES' %}#DCFCE7
+                {% elif notif.type == 'AVERTISSEMENT' %}#FEF9C3
+                {% else %}#DBEAFE{% endif %}">
+      <i class="fas {% if notif.type == 'ALERTE' %}fa-exclamation-triangle
+                   {% elif notif.type == 'SUCCES' %}fa-check-circle
+                   {% elif notif.type == 'AVERTISSEMENT' %}fa-exclamation-circle
+                   {% else %}fa-info-circle{% endif %}"
+         style="font-size:14px;
+                color:{% if notif.type == 'ALERTE' %}#991B1B
+                {% elif notif.type == 'SUCCES' %}#166534
+                {% elif notif.type == 'AVERTISSEMENT' %}#854D0E
+                {% else %}#1E40AF{% endif %}">
+      </i>
+    </div>
+    <div style="flex:1">
+      <div style="font-weight:600;font-size:13px;color:var(--text-main)">
+        {{ notif.titre }}
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:3px">
+        {{ notif.message }}
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+        {{ notif.created_at|timesince }} ago
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      {% if notif.lien %}
+      <a href="{{ notif.lien }}" class="btn btn-primary btn-sm">
+        Voir
+      </a>
+      {% endif %}
+      {% if not notif.est_lue %}
+      <form method="post" action="{% url 'marquer_lue' notif.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-secondary btn-sm">
+          <i class="fas fa-check"></i>
+        </button>
+      </form>
+      {% else %}
+      <span style="font-size:11px;color:var(--success)">
+        <i class="fas fa-check"></i> Lu
+      </span>
+      {% endif %}
+    </div>
+  </div>
+  {% empty %}
+  <div style="text-align:center;color:var(--text-muted);padding:40px">
+    <i class="fas fa-bell-slash" style="font-size:40px;opacity:0.3;
+       display:block;margin-bottom:12px"></i>
+    Aucune notification.
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

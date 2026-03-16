@@ -238,10 +238,15 @@
       <!-- Commun bas -->
       <div class="sidebar-section">
         <div class="sidebar-section-label">Communication</div>
-        <a href="/messagerie/"
-           class="nav-item {% if '/messagerie/' in request.path %}active{% endif %}">
+        <a href="{% url 'messagerie' %}"
+           class="nav-item {% if '/messagerie/' in request.path and '/notifications/' not in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-envelope"></i></span>
           <span>Messages</span>
+        </a>
+        <a href="{% url 'liste_notifications' %}"
+           class="nav-item {% if '/notifications/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-bell"></i></span>
+          <span>Notifications</span>
           {% if nb_notifs > 0 %}
           <span class="nav-badge">{{ nb_notifs }}</span>
           {% endif %}
@@ -279,36 +284,13 @@
         </button>
 
         <!-- Notifications -->
-        <div style="position:relative">
-          <button class="navbar-btn" onclick="toggleNotifs(event)"
-                  title="Notifications">
-            <i class="fas fa-bell"></i>
-            {% if nb_notifs > 0 %}
-            <span class="notif-badge">{{ nb_notifs }}</span>
-            {% endif %}
-          </button>
-          <div class="notif-dropdown" id="notif-dropdown">
-            <div class="notif-dropdown-header">
-              Notifications
-              {% if nb_notifs > 0 %}
-              <span class="badge badge-danger" style="margin-left:8px">
-                {{ nb_notifs }}
-              </span>
-              {% endif %}
-            </div>
-            {% for notif in notifs_recentes %}
-            <div class="notif-item {% if not notif.est_lue %}unread{% endif %}">
-              <div class="notif-title">{{ notif.titre }}</div>
-              <div class="notif-time">{{ notif.created_at|timesince }}</div>
-            </div>
-            {% empty %}
-            <div style="padding:20px;text-align:center;color:var(--text-muted);
-                        font-size:13px">
-              Aucune notification
-            </div>
-            {% endfor %}
-          </div>
-        </div>
+        <a href="/messagerie/notifications/" class="navbar-btn"
+           title="Notifications">
+          <i class="fas fa-bell"></i>
+          {% if nb_notifs > 0 %}
+          <span class="notif-badge">{{ nb_notifs }}</span>
+          {% endif %}
+        </a>
 
         <!-- User menu -->
         <a href="/profil/" class="user-menu">
@@ -366,7 +348,7 @@
 {% block extra_js %}{% endblock %}
 
 <script>
-  initSessionWarning({{ session_remaining }}, 300);
+  initSessionWarning({{ session_remaining|default:0 }}, 300);
 
   // Sidebar mobile overlay
   const origToggle = window.toggleSidebar;
@@ -378,6 +360,33 @@
       overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
     }
   };
+
+  // Mise a jour compteur notifications toutes les 60 secondes
+  setInterval(function() {
+    fetch('/messagerie/api/notifications/nb/')
+      .then(r => r.json())
+      .then(data => {
+        const badge = document.querySelector('.notif-badge');
+        const navBadge = document.querySelector('.nav-badge');
+        if (data.nb > 0) {
+          if (badge) badge.textContent = data.nb;
+          else {
+            const btn = document.querySelector('.navbar-btn[title="Notifications"]');
+            if (btn) {
+              const b = document.createElement('span');
+              b.className = 'notif-badge';
+              b.textContent = data.nb;
+              btn.appendChild(b);
+            }
+          }
+          if (navBadge) navBadge.textContent = data.nb;
+        } else {
+          if (badge) badge.remove();
+          if (navBadge) navBadge.remove();
+        }
+      })
+      .catch(() => {});
+  }, 60000);
 </script>
 </body>
 </html>

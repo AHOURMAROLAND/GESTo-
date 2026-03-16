@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}{{ msg.sujet }}{% endblock %}
+{% block page_title %}Message{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ msg.sujet }}</h1>
+    <p>
+      De {{ msg.expediteur.nom_complet }} —
+      {{ msg.created_at|date:"d/m/Y H:i" }}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'nouveau_message' %}?reponse={{ msg.pk }}"
+       class="btn btn-primary">
+      <i class="fas fa-reply"></i> Repondre
+    </a>
+    <a href="{% url 'messagerie' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<div class="card" style="max-width:720px">
+  <div class="card-header">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:40px;height:40px;border-radius:50%;
+                  background:var(--primary);color:#fff;
+                  display:flex;align-items:center;justify-content:center;
+                  font-weight:700;font-size:14px">
+        {{ msg.expediteur.first_name|slice:":1" }}{{ msg.expediteur.last_name|slice:":1" }}
+      </div>
+      <div>
+        <div style="font-weight:600">{{ msg.expediteur.nom_complet }}</div>
+        <div style="font-size:12px;color:var(--text-muted)">
+          {{ msg.expediteur.get_role_display }} —
+          {{ msg.created_at|date:"d/m/Y a H:i" }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div style="font-size:14px;line-height:1.7;color:var(--text-main);
+                white-space:pre-wrap">{{ msg.contenu }}</div>
+  </div>
+</div>
+
+{% if msg.reponses.exists %}
+<div style="margin-top:16px">
+  <h3 style="font-size:14px;color:var(--text-muted);margin-bottom:12px">
+    {{ msg.reponses.count }} reponse(s)
+  </h3>
+  {% for rep in msg.reponses.all %}
+  <div class="card" style="max-width:720px;margin-bottom:10px">
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;
+                  margin-bottom:8px">
+        <strong style="font-size:13px">{{ rep.expediteur.nom_complet }}</strong>
+        <span style="font-size:11px;color:var(--text-muted)">
+          {{ rep.created_at|timesince }}
+        </span>
+      </div>
+      <div style="font-size:13px;color:var(--text-main)">
+        {{ rep.contenu }}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Nouveau communique{% endblock %}
+{% block page_title %}Nouveau communique{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Nouveau communique</h1></div>
+  <a href="{% url 'messagerie' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+<div class="card" style="max-width:640px">
+  <div class="card-body">
+    <div class="alert alert-info" style="margin-bottom:16px">
+      <i class="fas fa-info-circle"></i>
+      Un communique est envoye a un groupe de personnes.
+      Chaque destinataire recoit une notification in-app.
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">
+          Cible <span style="color:red">*</span>
+        </label>
+        <select name="cible" class="form-control">
+          {% for code, label in cibles %}
+          <option value="{{ code }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Sujet <span style="color:red">*</span>
+        </label>
+        <input type="text" name="sujet" class="form-control" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">
+          Contenu <span style="color:red">*</span>
+        </label>
+        <textarea name="contenu" class="form-control" rows="6"
+                  required></textarea>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-bullhorn"></i> Publier le communique
+        </button>
+        <a href="{% url 'messagerie' %}" class="btn btn-secondary">
+          Annuler
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

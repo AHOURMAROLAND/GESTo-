@@ -35,7 +35,7 @@ function initSessionWarning(remaining, warningThreshold) {
 }
 
 function prolongerSession() {
-  fetch('/api/session/prolonger/', { method: 'POST',
+  fetch('/messagerie/api/session/prolonger/', { method: 'POST',
     headers: { 'X-CSRFToken': getCookie('csrftoken') }
   }).then(() => {
     document.getElementById('session-warning').classList.remove('visible');
