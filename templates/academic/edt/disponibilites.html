@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Disponibilites {{ prof.nom_complet }}{% endblock %}
+{% block page_title %}Disponibilites professeur{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Disponibilites — {{ prof.nom_complet }}</h1>
+    <p>Plages horaires disponibles pour l'EDT</p>
+  </div>
+  <a href="{% url 'edt_professeur_detail' prof.pk %}"
+     class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header"><h5>Ajouter une disponibilite</h5></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="ajouter">
+        <div class="form-group">
+          <label class="form-label">Jour</label>
+          <select name="jour" class="form-control">
+            {% for j in jours %}
+            <option value="{{ j }}">{{ jours_labels|dict_get:j|default:j }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">De</label>
+            <input type="time" name="heure_debut" class="form-control"
+                   value="07:00">
+          </div>
+          <div class="form-group">
+            <label class="form-label">A</label>
+            <input type="time" name="heure_fin" class="form-control"
+                   value="13:00">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Jour</th>
+          <th>De</th>
+          <th>A</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in dispos %}
+        <tr>
+          <td><strong>{{ jours_labels|dict_get:d.jour|default:d.jour }}</strong></td>
+          <td>{{ d.heure_debut|time:"H:i" }}</td>
+          <td>{{ d.heure_fin|time:"H:i" }}</td>
+          <td>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="supprimer">
+              <input type="hidden" name="dispo_id" value="{{ d.pk }}">
+              <button type="submit" class="btn btn-danger btn-sm">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" style="text-align:center;
+              color:var(--text-muted);padding:20px">
+            Aucune disponibilite enregistree.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

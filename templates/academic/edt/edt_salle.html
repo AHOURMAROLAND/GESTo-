@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% block title %}EDT {{ salle.nom }}{% endblock %}
+{% block page_title %}Emploi du temps — {{ salle.nom }}{% endblock %}
+{% block extra_css %}
+<style>
+.edt-table { width:100%; border-collapse:collapse; font-size:12px; }
+.edt-table th {
+  background:var(--primary);color:#fff;
+  padding:10px 8px;text-align:center;
+  border:1px solid rgba(255,255,255,0.2);
+  white-space:nowrap;
+}
+.edt-table td {
+  border:1px solid var(--border-color);
+  padding:4px;
+  vertical-align:top;
+  min-width:100px;
+  min-height:60px;
+  background:var(--bg-card);
+}
+.edt-table .heure-col {
+  background:var(--bg-page);
+  text-align:center;
+  font-weight:600;
+  font-size:11px;
+  color:var(--text-muted);
+  min-width:70px;
+  white-space:nowrap;
+}
+.edt-slot {
+  background:var(--primary-light);
+  border-radius:6px;
+  padding:6px 8px;
+  font-size:11px;
+  cursor:pointer;
+  transition:opacity 0.15s;
+}
+.edt-slot:hover { opacity:0.8; }
+.edt-slot .slot-matiere {
+  font-weight:600;
+  color:var(--primary);
+}
+.edt-slot .slot-prof {
+  color:var(--text-muted);
+  margin-top:2px;
+}
+.edt-libre {
+  background:#F0FDF4;
+  border-radius:6px;
+  padding:6px 8px;
+  font-size:11px;
+  color:#16A34A;
+  text-align:center;
+}
+.edt-pause {
+  background:var(--bg-page);
+  text-align:center;
+  color:var(--text-muted);
+  font-size:11px;
+  padding:4px;
+}
+.edt-vide {
+  min-height:50px;
+  cursor:pointer;
+  transition:background 0.15s;
+}
+.edt-vide:hover { background:var(--primary-light); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>EDT — {{ salle.nom }}</h1>
+    <p>
+      {{ salle.niveau.nom }} —
+      {% if est_publie %}
+      <span class="badge badge-success">Publie</span>
+      {% else %}
+      <span class="badge badge-warning">Brouillon</span>
+      {% endif %}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    <form method="post" action="{% url 'publier_edt' salle.pk %}"
+          style="display:inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success"
+              onclick="return confirm('Publier et notifier les parents ?')">
+        <i class="fas fa-paper-plane"></i> Publier
+      </button>
+    </form>
+    <form method="post" action="{% url 'reinitialiser_edt' salle.pk %}"
+          style="display:inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger"
+              onclick="return confirm('Reinitialiser tout l\'EDT ?')">
+        <i class="fas fa-undo"></i> Reinitialiser
+      </button>
+    </form>
+    {% endif %}
+    <a href="{% url 'liste_grilles' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+{% if not grille %}
+<div class="alert alert-warning">
+  <i class="fas fa-exclamation-triangle"></i>
+  Aucune grille horaire definie pour le niveau {{ salle.niveau.nom }}.
+  <a href="{% url 'creer_grille' %}">Creer une grille</a> d'abord.
+</div>
+{% else %}
+
+<!-- Grille EDT -->
+<div style="overflow-x:auto">
+  <table class="edt-table">
+    <thead>
+      <tr>
+        <th>Creneau</th>
+        {% for jour in jours %}
+        {% if jour in 'LUNDI MARDI MERCREDI JEUDI VENDREDI SAMEDI' %}
+        <th>{{ jours_labels|dict_get:jour|default:jour }}</th>
+        {% endif %}
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for creneau in creneaux %}
+      <tr>
+        <td class="heure-col">
+          <strong>H{{ creneau.numero }}</strong><br>
+          <span style="font-size:10px">
+            {{ creneau.heure_debut|time:"H:i" }}<br>
+            {{ creneau.heure_fin|time:"H:i" }}
+          </span>
+          <br>
+          <span class="badge
+            {% if creneau.type == 'COURS' %}badge-primary
+            {% elif creneau.type == 'PAUSE' %}badge-warning
+            {% else %}badge-gray{% endif %}"
+            style="font-size:9px">
+            {{ creneau.get_type_display }}
+          </span>
+        </td>
+        {% for jour in jours %}
+        <td>
+          {% if creneau.type != 'COURS' %}
+          <div class="edt-pause">
+            {{ creneau.get_type_display }}
+          </div>
+          {% else %}
+          {% with slot=edt_data|dict_get:jour %}
+          {% with cell=slot|dict_get:creneau.numero %}
+          {% if cell %}
+            {% if cell.est_libre %}
+            <div class="edt-libre">Libre</div>
+            {% elif cell.matiere_salle %}
+            <div class="edt-slot"
+                 onclick="ouvrirModal(
+                   '{{ creneau.pk }}',
+                   '{{ jour }}',
+                   '{{ cell.matiere_salle.pk }}',
+                   '{{ cell.est_libre }}'
+                 )">
+              <div class="slot-matiere">
+                {{ cell.matiere_salle.matiere.nom }}
+              </div>
+              <div class="slot-prof">
+                {{ cell.matiere_salle.professeur.nom_complet|default:"?" }}
+              </div>
+            </div>
+            {% else %}
+            <div class="edt-vide"
+                 onclick="ouvrirModal('{{ creneau.pk }}','{{ jour }}','','')">
+            </div>
+            {% endif %}
+          {% else %}
+          <div class="edt-vide"
+               onclick="ouvrirModal('{{ creneau.pk }}','{{ jour }}','','')">
+          </div>
+          {% endif %}
+          {% endwith %}
+          {% endwith %}
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal modifier slot -->
+{% if request.user.role in 'DIRECTEUR CENSEUR' %}
+<div id="modal-edt" style="display:none;position:fixed;inset:0;
+     background:rgba(0,0,0,0.4);z-index:2000;
+     align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border-radius:12px;padding:24px;
+              width:100%;max-width:400px;margin:20px">
+    <h3 style="font-size:15px;margin-bottom:16px;color:var(--text-main)">
+      Modifier le creneau
+    </h3>
+    <form method="post" action="{% url 'modifier_slot_edt' salle.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="creneau_id" id="modal-creneau-id">
+      <input type="hidden" name="jour" id="modal-jour">
+      <div class="form-group">
+        <label class="form-label">Matiere</label>
+        <select name="matiere_salle_id" class="form-control"
+                id="modal-matiere">
+          <option value="">Vide</option>
+          {% for ms in matieres_salle %}
+          <option value="{{ ms.pk }}">
+            {{ ms.matiere.nom }}
+            {% if ms.professeur %} — {{ ms.professeur.nom_complet }}{% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" name="est_libre" value="1" id="modal-libre">
+          <span class="form-label" style="margin:0">Marquer comme libre</span>
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+        <button type="button" class="btn btn-secondary"
+                onclick="fermerModal()">
+          Annuler
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function ouvrirModal(creneau, jour, matiereSalle, libre) {
+  document.getElementById('modal-creneau-id').value = creneau;
+  document.getElementById('modal-jour').value = jour;
+  document.getElementById('modal-matiere').value = matiereSalle || '';
+  document.getElementById('modal-libre').checked = libre === 'True';
+  document.getElementById('modal-edt').style.display = 'flex';
+}
+function fermerModal() {
+  document.getElementById('modal-edt').style.display = 'none';
+}
+document.getElementById('modal-edt').addEventListener('click', function(e) {
+  if (e.target === this) fermerModal();
+});
+</script>
+{% endblock %}

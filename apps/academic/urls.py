@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 urlpatterns = [
@@ -20,4 +20,7 @@ urlpatterns = [
          name='modifier_matiere_salle'),
     path('matieres-salle/<int:pk>/supprimer/', views.supprimer_matiere_salle,
          name='supprimer_matiere_salle'),
+
+    # Emploi du temps
+    path('emploi-du-temps/', include('apps.academic.urls_edt')),
 ]

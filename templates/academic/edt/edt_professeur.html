@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% block title %}EDT {{ prof.nom_complet }}{% endblock %}
+{% block page_title %}EDT Professeur{% endblock %}
+{% block extra_css %}
+<style>
+.edt-pro-table { width:100%; border-collapse:collapse; font-size:12px; }
+.edt-pro-table th {
+  background:var(--primary);color:#fff;
+  padding:10px 8px;text-align:center;
+  border:1px solid rgba(255,255,255,0.2);
+}
+.edt-pro-table td {
+  border:1px solid var(--border-color);
+  padding:6px;vertical-align:top;
+  background:var(--bg-card);min-height:50px;
+}
+.edt-pro-table .heure-col {
+  background:var(--bg-page);text-align:center;
+  font-weight:600;font-size:11px;
+  color:var(--text-muted);min-width:50px;
+}
+.pro-slot {
+  background:var(--primary-light);border-radius:6px;
+  padding:4px 6px;margin-bottom:3px;
+}
+.pro-slot .s-mat {
+  font-weight:600;color:var(--primary);font-size:11px;
+}
+.pro-slot .s-salle {
+  color:var(--text-muted);font-size:10px;
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>EDT — {{ prof.nom_complet }}</h1>
+    <p>{{ prof.specialite|default:"Professeur" }}</p>
+  </div>
+  <div style="display:flex;gap:10px">
+    {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+    <a href="{% url 'disponibilites_prof' prof.pk %}"
+       class="btn btn-secondary">
+      <i class="fas fa-clock"></i> Disponibilites
+    </a>
+    {% endif %}
+    <a href="{% url 'liste_grilles' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+{% if request.user.role in 'DIRECTEUR CENSEUR' %}
+<div style="margin-bottom:16px">
+  <form method="get" style="display:flex;gap:10px;align-items:center">
+    <label style="font-size:13px;color:var(--text-muted)">
+      Voir EDT de :
+    </label>
+    <select name="prof" class="form-control" style="max-width:220px"
+            onchange="this.form.submit()">
+      <option value="">Mon EDT</option>
+      {% for p in professeurs %}
+      <option value="{{ p.pk }}"
+        {% if p.pk == prof.pk %}selected{% endif %}>
+        {{ p.nom_complet }}
+      </option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+{% endif %}
+
+{% if creneaux_nums %}
+<div style="overflow-x:auto">
+  <table class="edt-pro-table">
+    <thead>
+      <tr>
+        <th>H</th>
+        {% for jour in jours %}
+        <th>{{ jours_labels|dict_get:jour|default:jour }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for num in creneaux_nums %}
+      <tr>
+        <td class="heure-col">H{{ num }}</td>
+        {% for jour in jours %}
+        <td>
+          {% with slots=edt_data|dict_get:jour %}
+          {% with cells=slots|dict_get:num %}
+          {% for slot in cells %}
+          <div class="pro-slot">
+            <div class="s-mat">
+              {{ slot.matiere_salle.matiere.nom }}
+            </div>
+            <div class="s-salle">{{ slot.salle.nom }}</div>
+          </div>
+          {% endfor %}
+          {% endwith %}
+          {% endwith %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-calendar-times" style="font-size:40px;
+     margin-bottom:12px;opacity:0.3"></i>
+  <p>Aucun cours programme pour ce professeur.</p>
+</div>
+{% endif %}
+{% endblock %}

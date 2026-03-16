@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Grille {{ grille.niveau.nom }}{% endblock %}
+{% block page_title %}Grille horaire{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Grille — {{ grille.niveau.nom }}</h1>
+    <p>{{ grille.annee.nom }} — {{ creneaux.count }} creneau(x)</p>
+  </div>
+  <a href="{% url 'liste_grilles' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="grid-2">
+
+  <div class="card">
+    <div class="card-header"><h5>Ajouter un creneau</h5></div>
+    <div class="card-body">
+      <form method="post" action="{% url 'ajouter_creneau' grille.pk %}">
+        {% csrf_token %}
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Numero</label>
+            <input type="number" name="numero" class="form-control"
+                   value="{{ creneaux.count|add:1 }}" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Type</label>
+            <select name="type" class="form-control">
+              <option value="COURS">Cours</option>
+              <option value="PAUSE">Pause</option>
+              <option value="RECREATION">Recreation</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Heure debut</label>
+            <input type="time" name="heure_debut" class="form-control"
+                   value="07:30">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Heure fin</label>
+            <input type="time" name="heure_fin" class="form-control"
+                   value="08:30">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Jours applicables</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            {% for j in 'LUNDI MARDI MERCREDI JEUDI VENDREDI SAMEDI'|split:" " %}
+            <label style="display:flex;align-items:center;gap:4px;
+                          font-size:13px;cursor:pointer">
+              <input type="checkbox" name="jours" value="{{ j }}" checked>
+              {{ j|slice:":3"|capfirst }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Ajouter
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>N</th>
+          <th>Type</th>
+          <th>Debut</th>
+          <th>Fin</th>
+          <th>Duree</th>
+          <th>Jours</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in creneaux %}
+        <tr>
+          <td><strong>H{{ c.numero }}</strong></td>
+          <td>
+            <span class="badge
+              {% if c.type == 'COURS' %}badge-primary
+              {% elif c.type == 'PAUSE' %}badge-warning
+              {% else %}badge-gray{% endif %}">
+              {{ c.get_type_display }}
+            </span>
+          </td>
+          <td>{{ c.heure_debut|time:"H:i" }}</td>
+          <td>{{ c.heure_fin|time:"H:i" }}</td>
+          <td>{{ c.duree_minutes }}min</td>
+          <td style="font-size:11px;color:var(--text-muted)">
+            {{ c.jours_applicables|truncatechars:20 }}
+          </td>
+          <td>
+            <form method="post"
+                  action="{% url 'supprimer_creneau' c.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger btn-sm"
+                      onclick="return confirm('Supprimer H{{ c.numero }} ?')">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align:center;
+              color:var(--text-muted);padding:24px">
+            Aucun creneau. Ajoutez H1, H2, H3...
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+{% endblock %}

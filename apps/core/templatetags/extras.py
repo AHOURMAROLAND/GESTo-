@@ -70,3 +70,18 @@ def initiales(user):
         return f"{f}{l}" or user.username[:2].upper()
     except Exception:
         return '??'
+
+
+@register.filter
+def dict_get(d, key):
+    if d is None:
+        return None
+    try:
+        return d.get(key)
+    except AttributeError:
+        return None
+
+
+@register.filter
+def split(value, separator):
+    return value.split(separator)
