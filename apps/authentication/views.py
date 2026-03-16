@@ -25,7 +25,13 @@ def custom_login(request):
                     error = f"Ce compte n'est pas un compte {dict(CustomUser.ROLES).get(role, role)}."
                 else:
                     login(request, user)
-                    # Bot B01 — alerte connexion (sera active a E3)
+                    # Bot B01 — alerte connexion
+                    from django_q.tasks import async_task
+                    try:
+                        async_task('apps.communication.bots.bot_connexion', user)
+                    except Exception:
+                        pass
+
                     next_url = request.POST.get('next') or request.GET.get('next') or '/'
                     return redirect(next_url)
             elif user and not user.is_active:

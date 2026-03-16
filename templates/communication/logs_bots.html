@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Logs bots{% endblock %}
+{% block page_title %}Logs WhatsApp{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Logs bots WhatsApp</h1></div>
+  <a href="{% url 'messagerie' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="grid-3 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-check" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.envoyes }}</div>
+      <div class="stat-label">Envoyes</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2">
+      <i class="fas fa-times" style="color:#DC2626"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.echecs }}</div>
+      <div class="stat-label">Echecs</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-ban" style="color:#D97706"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.skips }}</div>
+      <div class="stat-label">Anti-spam</div>
+    </div>
+  </div>
+</div>
+
+<div class="table-container">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Date/Heure</th>
+        <th>Code</th>
+        <th>Destinataire</th>
+        <th>Statut</th>
+        <th>Erreur</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td style="font-size:12px">
+          {{ log.created_at|date:"d/m/Y H:i" }}
+        </td>
+        <td>
+          <span class="badge badge-primary">{{ log.code_bot }}</span>
+        </td>
+        <td style="font-size:12px">
+          {{ log.destinataire.nom_complet|default:"—" }}
+        </td>
+        <td>
+          <span class="badge
+            {% if log.statut == 'ENVOYE' %}badge-success
+            {% elif log.statut == 'ECHEC' %}badge-danger
+            {% else %}badge-warning{% endif %}">
+            {{ log.statut }}
+          </span>
+        </td>
+        <td style="font-size:11px;color:var(--text-muted)">
+          {{ log.erreur|default:"—" }}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="5" style="text-align:center;
+            color:var(--text-muted);padding:30px">
+          Aucun log.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

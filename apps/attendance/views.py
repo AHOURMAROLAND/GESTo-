@@ -219,7 +219,7 @@ def pointer_presence(request, pk):
             seance.save()
 
             # Verrou automatique apres 10 minutes
-            from django_q.tasks import schedule
+            from django_q.tasks import schedule, async_task
             try:
                 schedule(
                     'apps.attendance.tasks.verrouiller_seance',
@@ -229,6 +229,18 @@ def pointer_presence(request, pk):
                 )
             except Exception:
                 pass
+
+            # Bot B08 — alerte absence aux parents
+            for insc in inscrits:
+                pres = Presence.objects.filter(
+                    eleve=insc.eleve, seance=seance,
+                    statut='ABSENT'
+                ).first()
+                if pres:
+                    try:
+                        async_task('apps.communication.bots.bot_absence', pres)
+                    except Exception:
+                        pass
 
             messages.success(
                 request,

@@ -255,6 +255,13 @@
           <span class="nav-badge">{{ nb_notifs }}</span>
           {% endif %}
         </a>
+        {% if request.user.role == 'DIRECTEUR' or request.user.role == 'CENSEUR' %}
+        <a href="{% url 'logs_bots' %}"
+           class="nav-item {% if '/bots/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fab fa-whatsapp"></i></span>
+          <span>Bots WA</span>
+        </a>
+        {% endif %}
       </div>
 
     </div>

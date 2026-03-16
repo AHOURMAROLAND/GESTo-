@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
 from django.utils import timezone
-from .models import Notification, Message, Communique
+from .models import Notification, Message, Communique, LogBot
 from apps.authentication.models import CustomUser
 
 
@@ -353,7 +353,44 @@ def creer_alertes_finances():
                 Notification.creer(
                     destinataire=dest,
                     titre=titre,
-                    message=f"{f.eleve.nom_complet} a un solde de {f.solde} FCFA pour {f.type_frais.nom}.",
+                    message=f"{f.eleve.nom_complet} a un solde de {f.solde} FCFA for {f.type_frais.nom}.",
                     type='ALERTE',
                     lien=f'/finance/eleve/{f.eleve.pk}/'
                 )
+
+
+@login_required
+@role_requis('DIRECTEUR', 'CENSEUR')
+def logs_bots(request):
+    logs = LogBot.objects.select_related(
+        'destinataire'
+    ).order_by('-created_at')[:100]
+
+    stats = {
+        'envoyes': LogBot.objects.filter(statut='ENVOYE').count(),
+        'echecs': LogBot.objects.filter(statut='ECHEC').count(),
+        'skips': LogBot.objects.filter(statut='SKIP').count(),
+    }
+
+    return render(request, 'communication/logs_bots.html', {
+        'logs': logs,
+        'stats': stats,
+    })
+
+
+@login_required
+def verifier_wa_view(request):
+    from django.http import JsonResponse
+    from .bots import valider_numero_wa, verifier_numero_wa_api
+    numero = request.GET.get('numero', '')
+    if not numero:
+        return JsonResponse({'valide': False, 'message': 'Numero vide'})
+    valide, numero_formate, msg_format = valider_numero_wa(numero)
+    if not valide:
+        return JsonResponse({'valide': False, 'message': msg_format})
+    existe, msg_api = verifier_numero_wa_api(numero_formate)
+    return JsonResponse({
+        'valide': existe,
+        'numero_formate': numero_formate,
+        'message': msg_api,
+    })

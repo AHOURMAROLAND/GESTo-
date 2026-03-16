@@ -407,6 +407,13 @@ def nouveau_paiement(request):
             request,
             f"Paiement enregistre — Recu N° {numero_recu}"
         )
+
+        from django_q.tasks import async_task
+        try:
+            async_task('apps.communication.bots.bot_paiement_confirme', paiement)
+        except Exception:
+            pass
+
         return redirect('recu_paiement', pk=paiement.pk)
 
     return render(request, 'finance/nouveau_paiement.html', {

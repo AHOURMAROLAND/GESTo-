@@ -20,4 +20,6 @@ urlpatterns = [
     path('message/<int:pk>/', views.detail_message, name='detail_message'),
     path('communique/nouveau/', views.nouveau_communique,
          name='nouveau_communique'),
+    path('bots/logs/', views.logs_bots, name='logs_bots'),
+    path('api/verifier-wa/', views.verifier_wa_view, name='verifier_wa'),
 ]
