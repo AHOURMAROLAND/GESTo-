@@ -1,64 +1,78 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GESTo — Gestion Scolaire Togo</title>
-</head>
-<body style="font-family:Arial;padding:40px;background:#EFF6FF">
-  <div style="background:white;padding:32px;border-radius:12px;
-              max-width:620px;margin:auto;border:1px solid #BFDBFE">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-      <div style="width:48px;height:48px;background:#2563EB;border-radius:10px;
-                  display:flex;align-items:center;justify-content:center;
-                  color:white;font-size:22px;font-weight:700">G</div>
-      <div>
-        <h1 style="margin:0;color:#1E40AF;font-size:20px">GESTo</h1>
-        <p style="margin:0;color:#64748B;font-size:13px">
-          Gestion Scolaire Togo — Ste Bakhita
-        </p>
-      </div>
+{% extends 'base.html' %}
+
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Bonjour, {{ request.user.first_name|default:request.user.username }}</h1>
+    <p>
+      {{ request.user.get_role_display }} —
+      {% if annee_active %}
+        Annee {{ annee_active.nom }}
+      {% else %}
+        Aucune annee active
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="grid-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DBEAFE">
+      <i class="fas fa-user-graduate" style="color:#1E40AF"></i>
     </div>
-
-    <div style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;
-                padding:12px 16px;margin-bottom:20px">
-      <p style="margin:0;color:#166534;font-weight:600">
-        ✅ E1 — Fondations OK (5%)
-      </p>
-      <p style="margin:4px 0 0;color:#16A34A;font-size:13px">
-        Django 5.1 · 10 apps · SQLite · django-q · WASenderAPI ready
-      </p>
+    <div class="stat-info">
+      <div class="stat-value">—</div>
+      <div class="stat-label">Eleves inscrits</div>
     </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-school" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">—</div>
+      <div class="stat-label">Salles actives</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-users" style="color:#854D0E"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">—</div>
+      <div class="stat-label">Personnel</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FFEDD5">
+      <i class="fas fa-bell" style="color:#9A3412"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ nb_notifs }}</div>
+      <div class="stat-label">Notifications</div>
+    </div>
+  </div>
+</div>
 
-    <table style="width:100%;font-size:13px;border-collapse:collapse">
-      <tr style="border-bottom:1px solid #F1F5F9">
-        <td style="padding:8px 0;color:#64748B">Utilisateur connecté</td>
-        <td style="padding:8px 0;font-weight:600">{{ request.user }}</td>
-      </tr>
-      <tr style="border-bottom:1px solid #F1F5F9">
-        <td style="padding:8px 0;color:#64748B">Rôle</td>
-        <td style="padding:8px 0;font-weight:600">{{ request.user.role }}</td>
-      </tr>
-      <tr>
-        <td style="padding:8px 0;color:#64748B">Prochaine étape</td>
-        <td style="padding:8px 0;font-weight:600;color:#2563EB">
-          E2 — Auth & Login par rôle
-        </td>
-      </tr>
-    </table>
-
-    <div style="margin-top:20px;display:flex;gap:10px">
-      <a href="/admin/"
-         style="background:#2563EB;color:white;padding:10px 20px;
-                border-radius:8px;text-decoration:none;font-size:13px">
-        Admin Django
+<div class="card">
+  <div class="card-header">
+    <h5>Bienvenue sur GESTo</h5>
+  </div>
+  <div class="card-body">
+    <p style="color:var(--text-muted);font-size:13px">
+      GESTo v3 — Complexe Scolaire Ste Bakhita — E3 Layout OK (14%)
+    </p>
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <a href="/personnel/" class="btn btn-primary">
+        <i class="fas fa-users"></i> Personnel
       </a>
-      <a href="/logout/"
-         style="background:#FEE2E2;color:#991B1B;padding:10px 20px;
-                border-radius:8px;text-decoration:none;font-size:13px">
-        Déconnexion
+      <a href="/admin/" class="btn btn-secondary">
+        <i class="fas fa-cog"></i> Admin Django
       </a>
     </div>
   </div>
-</body>
-</html>
+</div>
+{% endblock %}

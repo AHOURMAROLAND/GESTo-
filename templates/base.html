@@ -1,0 +1,360 @@
+{% load static %}
+{% load extras %}
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}GESTo{% endblock %} — Ste Bakhita</title>
+  <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  {% block extra_css %}{% endblock %}
+</head>
+<body data-session-remaining="{{ session_remaining }}">
+
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">G</div>
+      <div class="logo-text">
+        <h1>GESTo</h1>
+        <p>Ste Bakhita</p>
+      </div>
+    </div>
+
+    <div style="flex:1;overflow-y:auto">
+
+      <!-- Navigation commune -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Principal</div>
+        <a href="{% url 'dashboard' %}"
+           class="nav-item {% if request.path == '/' %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-home"></i></span>
+          <span>Tableau de bord</span>
+        </a>
+        <a href="/profil/"
+           class="nav-item {% if '/profil/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-user"></i></span>
+          <span>Mon profil</span>
+        </a>
+      </div>
+
+      <!-- DIRECTEUR & CENSEUR -->
+      {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Administration</div>
+        <a href="/personnel/"
+           class="nav-item {% if '/personnel/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-users"></i></span>
+          <span>Personnel</span>
+        </a>
+        <a href="/salles/"
+           class="nav-item {% if '/salles/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-school"></i></span>
+          <span>Salles & Classes</span>
+        </a>
+        <a href="/notes/"
+           class="nav-item {% if '/notes/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-clipboard-list"></i></span>
+          <span>Evaluations</span>
+          {% if taches_en_attente > 0 %}
+          <span class="nav-badge">{{ taches_en_attente }}</span>
+          {% endif %}
+        </a>
+        <a href="/emploi-du-temps/"
+           class="nav-item {% if '/emploi-du-temps/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-calendar-alt"></i></span>
+          <span>Emploi du temps</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- DIRECTEUR uniquement -->
+      {% if request.user.role == 'DIRECTEUR' %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Direction</div>
+        <a href="/finance/"
+           class="nav-item {% if '/finance/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
+          <span>Finance</span>
+        </a>
+        <a href="/documents/"
+           class="nav-item {% if '/documents/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
+          <span>Documents</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- PROFESSEUR -->
+      {% if request.user.role == 'PROFESSEUR' %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Enseignement</div>
+        <a href="/notes/"
+           class="nav-item {% if '/notes/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-pen"></i></span>
+          <span>Mes evaluations</span>
+          {% if taches_en_attente > 0 %}
+          <span class="nav-badge">{{ taches_en_attente }}</span>
+          {% endif %}
+        </a>
+        <a href="/presences/"
+           class="nav-item {% if '/presences/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-check-square"></i></span>
+          <span>Pointage</span>
+        </a>
+        <a href="/emploi-du-temps/"
+           class="nav-item {% if '/emploi-du-temps/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-calendar"></i></span>
+          <span>Mon EDT</span>
+        </a>
+        <a href="/eleves/"
+           class="nav-item {% if '/eleves/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-user-graduate"></i></span>
+          <span>Mes eleves</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- SECRETAIRE -->
+      {% if request.user.role == 'SECRETAIRE' %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Secretariat</div>
+        <a href="/eleves/"
+           class="nav-item {% if '/eleves/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-user-graduate"></i></span>
+          <span>Eleves</span>
+        </a>
+        <a href="/notes/"
+           class="nav-item {% if '/notes/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-pen"></i></span>
+          <span>Saisie notes</span>
+          {% if taches_en_attente > 0 %}
+          <span class="nav-badge">{{ taches_en_attente }}</span>
+          {% endif %}
+        </a>
+        <a href="/documents/"
+           class="nav-item {% if '/documents/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-file"></i></span>
+          <span>Documents</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- COMPTABLE -->
+      {% if request.user.role == 'COMPTABLE' %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Finance</div>
+        <a href="/finance/"
+           class="nav-item {% if '/finance/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
+          <span>Paiements</span>
+        </a>
+        <a href="/eleves/"
+           class="nav-item {% if '/eleves/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-user-graduate"></i></span>
+          <span>Eleves</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- SURVEILLANT -->
+      {% if request.user.role == 'SURVEILLANT' %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Surveillance</div>
+        <a href="/presences/"
+           class="nav-item {% if '/presences/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-eye"></i></span>
+          <span>Presences</span>
+        </a>
+        <a href="/discipline/"
+           class="nav-item {% if '/discipline/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-gavel"></i></span>
+          <span>Discipline</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- PARENT -->
+      {% if request.user.role == 'PARENT' %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Espace parent</div>
+        <a href="/eleves/mes-enfants/"
+           class="nav-item {% if '/mes-enfants/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-child"></i></span>
+          <span>Mes enfants</span>
+        </a>
+        <a href="/finance/mes-frais/"
+           class="nav-item {% if '/mes-frais/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-receipt"></i></span>
+          <span>Mes frais</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- ELEVE -->
+      {% if request.user.role == 'ELEVE' %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Espace eleve</div>
+        <a href="/notes/mes-notes/"
+           class="nav-item {% if '/mes-notes/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-star"></i></span>
+          <span>Mes notes</span>
+        </a>
+        <a href="/emploi-du-temps/"
+           class="nav-item {% if '/emploi-du-temps/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-calendar"></i></span>
+          <span>Mon EDT</span>
+        </a>
+      </div>
+      {% endif %}
+
+      <!-- Commun bas -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-label">Communication</div>
+        <a href="/messagerie/"
+           class="nav-item {% if '/messagerie/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-envelope"></i></span>
+          <span>Messages</span>
+          {% if nb_notifs > 0 %}
+          <span class="nav-badge">{{ nb_notifs }}</span>
+          {% endif %}
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Sidebar footer -->
+    <div class="sidebar-footer">
+      <a href="/logout/" class="nav-item" style="color:#F87171">
+        <span class="nav-icon"><i class="fas fa-sign-out-alt"></i></span>
+        <span>Deconnexion</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <div class="main-content">
+
+    <!-- NAVBAR -->
+    <nav class="navbar-top">
+      <button class="navbar-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+
+      <span class="navbar-title">{% block page_title %}Tableau de bord{% endblock %}</span>
+
+      <div class="navbar-actions">
+
+        <!-- Mode sombre -->
+        <button class="navbar-btn" id="theme-toggle"
+                onclick="toggleTheme()" title="Mode sombre/clair">
+          <i class="fas fa-moon"></i>
+        </button>
+
+        <!-- Notifications -->
+        <div style="position:relative">
+          <button class="navbar-btn" onclick="toggleNotifs(event)"
+                  title="Notifications">
+            <i class="fas fa-bell"></i>
+            {% if nb_notifs > 0 %}
+            <span class="notif-badge">{{ nb_notifs }}</span>
+            {% endif %}
+          </button>
+          <div class="notif-dropdown" id="notif-dropdown">
+            <div class="notif-dropdown-header">
+              Notifications
+              {% if nb_notifs > 0 %}
+              <span class="badge badge-danger" style="margin-left:8px">
+                {{ nb_notifs }}
+              </span>
+              {% endif %}
+            </div>
+            {% for notif in notifs_recentes %}
+            <div class="notif-item {% if not notif.est_lue %}unread{% endif %}">
+              <div class="notif-title">{{ notif.titre }}</div>
+              <div class="notif-time">{{ notif.created_at|timesince }}</div>
+            </div>
+            {% empty %}
+            <div style="padding:20px;text-align:center;color:var(--text-muted);
+                        font-size:13px">
+              Aucune notification
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- User menu -->
+        <a href="/profil/" class="user-menu">
+          <div class="user-avatar">
+            {{ request.user|initiales }}
+          </div>
+          <div class="user-info">
+            <div class="user-name">{{ request.user.get_full_name|default:request.user.username|truncatechars:16 }}</div>
+            <div class="user-role">{{ request.user.get_role_display }}</div>
+          </div>
+        </a>
+
+      </div>
+    </nav>
+
+    <!-- MESSAGES DJANGO -->
+    {% if messages %}
+    <div style="padding:16px 24px 0">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-auto">
+        <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'danger' %}fa-exclamation-circle{% else %}fa-info-circle{% endif %}"></i>
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- CONTENU PAGE -->
+    <div class="page-body">
+      {% block content %}{% endblock %}
+    </div>
+
+  </div>
+</div>
+
+<!-- SPINNER OVERLAY -->
+<div id="spinner-overlay" class="spinner-overlay" style="display:none">
+  <div class="spinner"></div>
+</div>
+
+<!-- SESSION WARNING -->
+<div class="session-warning {% if session_warning %}visible{% endif %}"
+     id="session-warning">
+  <i class="fas fa-clock"></i>
+  <span id="session-msg">Votre session va expirer.</span>
+  <button onclick="prolongerSession()">Continuer</button>
+</div>
+
+<!-- Overlay sidebar mobile -->
+<div id="sidebar-overlay"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999"
+     onclick="toggleSidebar()"></div>
+
+<script src="{% static 'js/main.js' %}"></script>
+{% block extra_js %}{% endblock %}
+
+<script>
+  initSessionWarning({{ session_remaining }}, 300);
+
+  // Sidebar mobile overlay
+  const origToggle = window.toggleSidebar;
+  window.toggleSidebar = function() {
+    origToggle();
+    const overlay = document.getElementById('sidebar-overlay');
+    const sidebar = document.querySelector('.sidebar');
+    if (overlay) {
+      overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+    }
+  };
+</script>
+</body>
+</html>
