@@ -63,7 +63,7 @@
           <span class="nav-icon"><i class="fas fa-school"></i></span>
           <span>Salles & Classes</span>
         </a>
-        <a href="/notes/"
+        <a href="{% url 'liste_evaluations' %}"
            class="nav-item {% if '/notes/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-clipboard-list"></i></span>
           <span>Evaluations</span>
@@ -100,10 +100,10 @@
       {% if request.user.role == 'PROFESSEUR' %}
       <div class="sidebar-section">
         <div class="sidebar-section-label">Enseignement</div>
-        <a href="/notes/"
+        <a href="{% url 'liste_evaluations' %}"
            class="nav-item {% if '/notes/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-pen"></i></span>
-          <span>Mes evaluations</span>
+          <span>Evaluations</span>
           {% if taches_en_attente > 0 %}
           <span class="nav-badge">{{ taches_en_attente }}</span>
           {% endif %}
@@ -135,7 +135,7 @@
           <span class="nav-icon"><i class="fas fa-user-graduate"></i></span>
           <span>Eleves</span>
         </a>
-        <a href="/notes/"
+        <a href="{% url 'liste_evaluations' %}"
            class="nav-item {% if '/notes/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-pen"></i></span>
           <span>Saisie notes</span>

@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load extras %}
+{% block title %}{{ eval.titre }}{% endblock %}
+{% block page_title %}Detail evaluation{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ eval.titre }}</h1>
+    <p>
+      {{ eval.matiere_salle.salle.nom }} —
+      {{ eval.matiere_salle.matiere.nom }} —
+      {{ eval.date|date:"d/m/Y" }}
+    </p>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    {% if eval.statut in 'EN_SAISIE NOTES_SAISIES VALIDEE' %}
+    <a href="{% url 'saisir_notes' eval.pk %}" class="btn btn-primary">
+      <i class="fas fa-pen"></i> Saisir notes
+    </a>
+    {% endif %}
+    <a href="{% url 'liste_evaluations' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<!-- Statut workflow -->
+<div class="card mb-4">
+  <div class="card-body">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-size:13px;color:var(--text-muted)">Statut :</span>
+      <span class="badge {{ statut_color }}" style="font-size:13px;padding:6px 14px">
+        {{ eval.get_statut_display }}
+      </span>
+      {% if eval.statut == 'REJETEE' and eval.commentaire_rejet %}
+      <span style="font-size:12px;color:var(--danger)">
+        — Motif : {{ eval.commentaire_rejet }}
+      </span>
+      {% endif %}
+    </div>
+
+    <!-- Workflow steps -->
+    <div style="display:flex;align-items:center;gap:6px;
+                margin-top:16px;flex-wrap:wrap">
+      {% for code, label in eval.STATUTS %}
+      {% if code != 'REJETEE' %}
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="padding:5px 12px;border-radius:20px;font-size:11px;
+                    font-weight:600;
+                    background:{% if eval.statut == code %}var(--primary)
+                    {% elif eval.statut == 'VALIDEE_FINALE' %}#16A34A
+                    {% else %}var(--bg-page){% endif %};
+                    color:{% if eval.statut == code %}#fff
+                    {% elif eval.statut == 'VALIDEE_FINALE' %}#fff
+                    {% else %}var(--text-muted){% endif %}">
+          {{ label }}
+        </div>
+        {% if not forloop.last %}
+        <i class="fas fa-arrow-right"
+           style="font-size:10px;color:var(--text-muted)"></i>
+        {% endif %}
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="grid-2">
+
+  <!-- Infos evaluation -->
+  <div class="card">
+    <div class="card-header"><h5>Informations</h5></div>
+    <div class="card-body">
+      <table class="table">
+        <tr>
+          <td style="color:var(--text-muted);width:140px">Salle</td>
+          <td><strong>{{ eval.matiere_salle.salle.nom }}</strong></td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Matiere</td>
+          <td>{{ eval.matiere_salle.matiere.nom }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Coefficient</td>
+          <td>{{ eval.matiere_salle.coefficient }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Type</td>
+          <td>{{ eval.get_type_display }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Date</td>
+          <td>{{ eval.date|date:"d/m/Y" }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Note sur</td>
+          <td>{{ eval.note_sur }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Periode</td>
+          <td>{{ eval.periode }}</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text-muted)">Cree par</td>
+          <td>{{ eval.creee_par.nom_complet|default:"—" }}</td>
+        </tr>
+        {% if autorisation %}
+        <tr>
+          <td style="color:var(--text-muted)">Saisisseur</td>
+          <td>
+            {{ autorisation.saisisseur_effectif.nom_complet|default:"Prof matiere" }}
+          </td>
+        </tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
+
+  <!-- Actions selon role et statut -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <!-- Actions censeur -->
+    {% if request.user.role in 'CENSEUR DIRECTEUR' %}
+
+    {% if eval.statut == 'BROUILLON' %}
+    <div class="card">
+      <div class="card-header">
+        <h5>Valider ou rejeter</h5>
+      </div>
+      <div class="card-body">
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <form method="post" action="{% url 'valider_evaluation' eval.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="valider">
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-check"></i> Valider
+            </button>
+          </form>
+          <button type="button" class="btn btn-danger"
+                  onclick="document.getElementById('form-rejeter').style.display='block'">
+            <i class="fas fa-times"></i> Rejeter
+          </button>
+        </div>
+        <form id="form-rejeter" method="post"
+              action="{% url 'valider_evaluation' eval.pk %}"
+              style="display:none;margin-top:12px">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="rejeter">
+          <div class="form-group">
+            <label class="form-label">Motif du rejet</label>
+            <input type="text" name="motif" class="form-control"
+                   placeholder="Ex: Date incorrecte..." required>
+          </div>
+          <button type="submit" class="btn btn-danger">
+            Confirmer le rejet
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if eval.statut in 'VALIDEE EN_SAISIE' %}
+    <div class="card">
+      <div class="card-header"><h5>Assigner le saisisseur</h5></div>
+      <div class="card-body">
+        <form method="post" action="{% url 'assigner_saisisseur' eval.pk %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">Qui saisit les notes ?</label>
+            <select name="saisisseur_id" class="form-control">
+              <option value="">
+                Professeur de la matiere
+                ({{ eval.matiere_salle.professeur.nom_complet|default:"Non assigne" }})
+              </option>
+              {% for sec in secretaires %}
+              <option value="{{ sec.pk }}"
+                {% if autorisation and autorisation.saisie_par and autorisation.saisie_par.pk == sec.pk %}
+                selected{% endif %}>
+                {{ sec.nom_complet }} (Secretaire)
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-user-check"></i> Assigner
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if eval.statut == 'NOTES_SAISIES' %}
+    <div class="card">
+      <div class="card-header"><h5>Valider les notes</h5></div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
+          {{ nb_notes }} note(s) saisie(s) sur {{ total_inscrits }} eleve(s).
+          {{ nb_absents }} absent(s).
+        </p>
+        <div style="display:flex;gap:10px">
+          <form method="post" action="{% url 'valider_notes' eval.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="valider">
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-check-double"></i> Valider les notes
+            </button>
+          </form>
+          <form method="post" action="{% url 'valider_notes' eval.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="rejeter">
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-undo"></i> Renvoyer en saisie
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% endif %}
+
+    <!-- Stats notes -->
+    {% if notes %}
+    <div class="card">
+      <div class="card-header"><h5>Apercu notes</h5></div>
+      <div class="card-body">
+        <div class="grid-2">
+          <div style="text-align:center">
+            <div style="font-size:28px;font-weight:700;color:var(--primary)">
+              {{ nb_notes }}
+            </div>
+            <div style="font-size:12px;color:var(--text-muted)">
+              Notes saisies
+            </div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:28px;font-weight:700;color:var(--danger)">
+              {{ nb_absents }}
+            </div>
+            <div style="font-size:12px;color:var(--text-muted)">Absents</div>
+          </div>
+        </div>
+        <a href="{% url 'saisir_notes' eval.pk %}"
+           class="btn btn-primary" style="width:100%;margin-top:12px;
+           justify-content:center">
+          <i class="fas fa-list"></i> Voir / Modifier notes
+        </a>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Supprimer -->
+    {% if eval.statut in 'BROUILLON REJETEE' %}
+    {% if eval.creee_par == request.user or request.user.role in 'DIRECTEUR CENSEUR' %}
+    <div class="card">
+      <div class="card-header">
+        <h5 style="color:var(--danger)">Zone dangereuse</h5>
+      </div>
+      <div class="card-body">
+        <form method="post"
+              action="{% url 'supprimer_evaluation' eval.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger"
+                  onclick="return confirm(
+                    'Supprimer cette evaluation ?'
+                  )">
+            <i class="fas fa-trash"></i> Supprimer l'evaluation
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+  </div>
+
+</div>
+{% endblock %}

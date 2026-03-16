@@ -241,7 +241,7 @@ def reinitialiser_edt(request, salle_pk):
 def edt_professeur(request, prof_pk=None):
     annee = AnneeScolaire.active()
     if prof_pk:
-        prof = get_object_or_404(CustomUser, pk=prof_pk, role='PROFESSEUR')
+        prof = get_object_or_404(CustomUser, pk=prof_pk)
     else:
         prof = request.user
 
@@ -287,7 +287,7 @@ def edt_professeur(request, prof_pk=None):
 @login_required
 @role_requis('DIRECTEUR', 'CENSEUR')
 def disponibilites_prof(request, prof_pk):
-    prof = get_object_or_404(CustomUser, pk=prof_pk, role='PROFESSEUR')
+    prof = get_object_or_404(CustomUser, pk=prof_pk)
     annee = AnneeScolaire.active()
     dispos = DisponibiliteProf.objects.filter(
         professeur=prof, annee=annee

@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Saisie notes — {{ eval.titre }}{% endblock %}
+{% block page_title %}Saisie des notes{% endblock %}
+{% block extra_css %}
+<style>
+.note-input {
+  width:80px;
+  text-align:center;
+  padding:6px 8px;
+  border:1.5px solid var(--border-color);
+  border-radius:6px;
+  font-size:14px;
+  font-weight:600;
+  color:var(--text-main);
+  background:var(--bg-card);
+}
+.note-input:focus { border-color:var(--primary); outline:none; }
+.note-input.invalide { border-color:var(--danger); background:#FEF2F2; }
+.note-input.valide { border-color:var(--success); }
+.absent-row { background:rgba(220,38,38,0.05); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Saisie — {{ eval.titre }}</h1>
+    <p>
+      {{ eval.matiere_salle.salle.nom }} —
+      {{ eval.matiere_salle.matiere.nom }} —
+      Note sur {{ eval.note_sur }}
+    </p>
+  </div>
+  <a href="{% url 'detail_evaluation' eval.pk %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<div class="alert alert-info mb-4">
+  <i class="fas fa-info-circle"></i>
+  Saisie globale — toutes les notes seront soumises ensemble.
+  Cochez "Absent" pour les eleves absents lors de l'evaluation.
+</div>
+
+<form method="post" id="form-notes">
+  {% csrf_token %}
+  <div class="card">
+    <div class="card-header">
+      <h5>
+        Notes —
+        {{ inscrits.count }} eleve(s) |
+        Note sur {{ eval.note_sur }}
+      </h5>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-secondary btn-sm"
+                onclick="toutMarquerPresent()">
+          Tous presents
+        </button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+    <div class="table-container">
+      <table class="table" id="table-notes">
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Nom complet</th>
+            <th style="width:100px;text-align:center">Note /{{ eval.note_sur }}</th>
+            <th style="width:80px;text-align:center">Absent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for insc in inscrits %}
+          {% with note=notes|get_item:insc.eleve.pk %}
+          <tr id="row-{{ insc.eleve.pk }}"
+              class="{% if note and note.est_absent %}absent-row{% endif %}">
+            <td style="color:var(--text-muted)">{{ forloop.counter }}</td>
+            <td>
+              <strong>{{ insc.eleve.nom_complet }}</strong>
+              {% if insc.eleve.redoublant %}
+              <span class="badge badge-warning" style="font-size:10px">R</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center">
+              <input type="number"
+                     name="note_{{ insc.eleve.pk }}"
+                     class="note-input"
+                     id="note-{{ insc.eleve.pk }}"
+                     min="0" max="{{ eval.note_sur }}"
+                     step="0.25"
+                     value="{% if note and note.valeur is not None %}{{ note.valeur }}{% endif %}"
+                     oninput="validerNote(this, {{ eval.note_sur }})"
+                     {% if note and note.est_absent %}disabled{% endif %}>
+            </td>
+            <td style="text-align:center">
+              <input type="checkbox"
+                     name="absent_{{ insc.eleve.pk }}"
+                     id="absent-{{ insc.eleve.pk }}"
+                     value="1"
+                     {% if note and note.est_absent %}checked{% endif %}
+                     onchange="toggleAbsent({{ insc.eleve.pk }})">
+            </td>
+          </tr>
+          {% endwith %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div style="padding:16px;display:flex;justify-content:flex-end;gap:10px;
+                border-top:1px solid var(--border-color)">
+      <button type="submit" class="btn btn-primary btn-lg">
+        <i class="fas fa-save"></i> Enregistrer toutes les notes
+      </button>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function validerNote(input, noteMax) {
+  const val = parseFloat(input.value);
+  if (input.value === '') {
+    input.classList.remove('valide', 'invalide');
+    return;
+  }
+  if (isNaN(val) || val < 0 || val > noteMax) {
+    input.classList.add('invalide');
+    input.classList.remove('valide');
+  } else {
+    input.classList.add('valide');
+    input.classList.remove('invalide');
+  }
+}
+
+function toggleAbsent(eleveId) {
+  const cb = document.getElementById('absent-' + eleveId);
+  const input = document.getElementById('note-' + eleveId);
+  const row = document.getElementById('row-' + eleveId);
+  if (cb.checked) {
+    input.disabled = true;
+    input.value = '';
+    row.classList.add('absent-row');
+  } else {
+    input.disabled = false;
+    row.classList.remove('absent-row');
+  }
+}
+
+function toutMarquerPresent() {
+  document.querySelectorAll('[id^="absent-"]').forEach(cb => {
+    if (cb.checked) {
+      cb.checked = false;
+      const id = cb.id.replace('absent-', '');
+      toggleAbsent(id);
+    }
+  });
+}
+
+// Navigation clavier entre notes
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' || e.key === 'ArrowDown') {
+    const inputs = Array.from(
+      document.querySelectorAll('.note-input:not(:disabled)')
+    );
+    const idx = inputs.indexOf(document.activeElement);
+    if (idx >= 0 && idx < inputs.length - 1) {
+      e.preventDefault();
+      inputs[idx + 1].focus();
+      inputs[idx + 1].select();
+    }
+  } else if (e.key === 'ArrowUp') {
+    const inputs = Array.from(
+      document.querySelectorAll('.note-input:not(:disabled)')
+    );
+    const idx = inputs.indexOf(document.activeElement);
+    if (idx > 0) {
+      e.preventDefault();
+      inputs[idx - 1].focus();
+      inputs[idx - 1].select();
+    }
+  }
+});
+</script>
+{% endblock %}
