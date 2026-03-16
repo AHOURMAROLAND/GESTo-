@@ -25,6 +25,14 @@
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
     {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+    <a href="{% url 'generer_certificat' eleve.pk %}"
+       class="btn btn-secondary">
+      <i class="fas fa-certificate"></i> Certificat
+    </a>
+    <a href="{% url 'attestation_pdf' eleve.pk %}"
+       class="btn btn-secondary">
+      <i class="fas fa-file-alt"></i> Attestation
+    </a>
     <a href="{% url 'modifier_eleve' eleve.pk %}"
        class="btn btn-secondary">
       <i class="fas fa-edit"></i> Modifier

@@ -103,11 +103,13 @@
           <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
           <span>Finance</span>
         </a>
-        <a href="/documents/"
+        {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+        <a href="{% url 'liste_documents' %}"
            class="nav-item {% if '/documents/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
           <span>Documents</span>
         </a>
+        {% endif %}
       </div>
       {% endif %}
 

@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}Configuration documents{% endblock %}
+{% block page_title %}Configuration documents{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Configuration documents</h1></div>
+  <a href="{% url 'liste_documents' %}" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Retour
+  </a>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="grid-2">
+
+    <div class="card">
+      <div class="card-header"><h5>Informations ecole</h5></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Nom de l'ecole</label>
+          <input type="text" name="nom_ecole" class="form-control"
+                 value="{{ config.nom_ecole }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Slogan</label>
+          <input type="text" name="slogan" class="form-control"
+                 value="{{ config.slogan }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adresse</label>
+          <input type="text" name="adresse" class="form-control"
+                 value="{{ config.adresse }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telephone</label>
+          <input type="text" name="telephone" class="form-control"
+                 value="{{ config.telephone }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" name="email" class="form-control"
+                 value="{{ config.email }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Site web</label>
+          <input type="text" name="site_web" class="form-control"
+                 value="{{ config.site_web }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Devise nationale</label>
+          <input type="text" name="devise_nationale" class="form-control"
+                 value="{{ config.devise_nationale }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ministre de tutelle</label>
+          <input type="text" name="ministre_tutelle" class="form-control"
+                 value="{{ config.ministre_tutelle }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pied de page</label>
+          <input type="text" name="pied_page" class="form-control"
+                 value="{{ config.pied_page }}"
+                 placeholder="Ex: Ecole catholique privee">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h5>Fichiers officiels</h5></div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Logo</label>
+          <input type="file" name="logo" class="form-control"
+                 accept="image/*">
+          {% if config.logo %}
+          <p style="font-size:12px;color:var(--success);margin-top:4px">
+            <i class="fas fa-check-circle"></i>
+            Logo defini
+          </p>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Signature du directeur</label>
+          <input type="file" name="signature_directeur"
+                 class="form-control" accept="image/*">
+          {% if config.signature_directeur %}
+          <p style="font-size:12px;color:var(--success);margin-top:4px">
+            <i class="fas fa-check-circle"></i>
+            Signature definie
+          </p>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cachet de l'ecole</label>
+          <input type="file" name="cachet" class="form-control"
+                 accept="image/*">
+          {% if config.cachet %}
+          <p style="font-size:12px;color:var(--success);margin-top:4px">
+            <i class="fas fa-check-circle"></i>
+            Cachet defini
+          </p>
+          {% endif %}
+        </div>
+        <div class="alert alert-info" style="margin-top:16px">
+          <i class="fas fa-info-circle"></i>
+          Ces fichiers apparaissent sur les certificats et bulletins PDF.
+          Format recommande : PNG transparent.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:20px;display:flex;gap:10px">
+    <button type="submit" class="btn btn-primary">
+      <i class="fas fa-save"></i> Enregistrer
+    </button>
+    <a href="{% url 'liste_documents' %}" class="btn btn-secondary">
+      Annuler
+    </a>
+  </div>
+</form>
+{% endblock %}

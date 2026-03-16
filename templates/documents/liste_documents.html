@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% block title %}Documents{% endblock %}
+{% block page_title %}Documents et rapports{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Documents</h1>
+    <p>Certificats, attestations, listes et bilans</p>
+  </div>
+  {% if request.user.role == 'DIRECTEUR' %}
+  <a href="{% url 'modifier_config_documents' %}"
+     class="btn btn-secondary">
+    <i class="fas fa-cog"></i> Configuration
+  </a>
+  {% endif %}
+</div>
+
+<!-- Config actuelle -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5>Configuration documents</h5>
+  </div>
+  <div class="card-body">
+    <div class="grid-3">
+      <div>
+        <div style="font-size:12px;color:var(--text-muted)">Ecole</div>
+        <div style="font-weight:600">{{ config.nom_ecole }}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text-muted)">Logo</div>
+        <div>
+          {% if config.logo %}
+          <span class="badge badge-success">Defini</span>
+          {% else %}
+          <span class="badge badge-warning">Non defini</span>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--text-muted)">Signature</div>
+        <div>
+          {% if config.signature_directeur %}
+          <span class="badge badge-success">Definie</span>
+          {% else %}
+          <span class="badge badge-warning">Non definie</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Actions rapides -->
+<div class="grid-4 mb-4">
+  <div class="card card-body" style="text-align:center">
+    <i class="fas fa-certificate" style="font-size:28px;
+       color:var(--primary);display:block;margin-bottom:8px"></i>
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px">
+      Certificat de scolarite
+    </div>
+    <a href="{% url 'liste_eleves' %}" class="btn btn-primary btn-sm">
+      Choisir un eleve
+    </a>
+  </div>
+  <div class="card card-body" style="text-align:center">
+    <i class="fas fa-file-alt" style="font-size:28px;
+       color:var(--success);display:block;margin-bottom:8px"></i>
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px">
+      Liste eleves PDF
+    </div>
+    <a href="{% url 'export_liste_eleves_pdf' %}"
+       class="btn btn-success btn-sm">
+      Telecharger
+    </a>
+  </div>
+  <div class="card card-body" style="text-align:center">
+    <i class="fas fa-file-excel" style="font-size:28px;
+       color:var(--success);display:block;margin-bottom:8px"></i>
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px">
+      Liste eleves Excel
+    </div>
+    <a href="{% url 'export_liste_eleves_excel' %}"
+       class="btn btn-success btn-sm">
+      Telecharger
+    </a>
+  </div>
+  <div class="card card-body" style="text-align:center">
+    <i class="fas fa-chart-bar" style="font-size:28px;
+       color:var(--danger);display:block;margin-bottom:8px"></i>
+    <div style="font-weight:600;font-size:13px;margin-bottom:8px">
+      Bilan annuel PDF
+    </div>
+    <a href="{% url 'bilan_annuel_pdf' %}" class="btn btn-danger btn-sm">
+      Generer
+    </a>
+  </div>
+</div>
+
+<!-- Historique certificats -->
+<div class="card">
+  <div class="card-header">
+    <h5>Certificats recents</h5>
+  </div>
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>N°</th>
+          <th>Eleve</th>
+          <th>Annee</th>
+          <th>Motif</th>
+          <th>Date</th>
+          <th>Delivre par</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cert in certificats %}
+        <tr>
+          <td>
+            <span class="badge badge-primary">{{ cert.numero }}</span>
+          </td>
+          <td><strong>{{ cert.eleve.nom_complet }}</strong></td>
+          <td>{{ cert.annee.nom }}</td>
+          <td style="font-size:12px">{{ cert.motif|default:"—" }}</td>
+          <td>{{ cert.date_delivrance|date:"d/m/Y" }}</td>
+          <td style="font-size:12px">
+            {{ cert.delivre_par.nom_complet|default:"—" }}
+          </td>
+          <td>
+            <a href="{% url 'reimprimer_certificat' cert.pk %}"
+               class="btn btn-primary btn-sm">
+              <i class="fas fa-print"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align:center;
+              color:var(--text-muted);padding:30px">
+            Aucun certificat genere.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
