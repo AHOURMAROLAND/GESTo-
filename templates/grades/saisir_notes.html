@@ -52,6 +52,7 @@
         Note sur {{ eval.note_sur }}
       </h5>
       <div style="display:flex;gap:10px">
+        {% if not est_lecture_seule %}
         <button type="button" class="btn btn-secondary btn-sm"
                 onclick="toutMarquerPresent()">
           Tous presents
@@ -59,6 +60,7 @@
         <button type="submit" class="btn btn-primary">
           <i class="fas fa-save"></i> Enregistrer
         </button>
+        {% endif %}
       </div>
     </div>
     <div class="table-container">
@@ -92,7 +94,7 @@
                      step="0.25"
                      value="{% if note and note.valeur is not None %}{{ note.valeur }}{% endif %}"
                      oninput="validerNote(this, {{ eval.note_sur }})"
-                     {% if note and note.est_absent %}disabled{% endif %}>
+                     {% if est_lecture_seule or (note and note.est_absent) %}disabled{% endif %}>
             </td>
             <td style="text-align:center">
               <input type="checkbox"
@@ -100,6 +102,7 @@
                      id="absent-{{ insc.eleve.pk }}"
                      value="1"
                      {% if note and note.est_absent %}checked{% endif %}
+                     {% if est_lecture_seule %}disabled{% endif %}
                      onchange="toggleAbsent({{ insc.eleve.pk }})">
             </td>
           </tr>
@@ -108,12 +111,14 @@
         </tbody>
       </table>
     </div>
+    {% if not est_lecture_seule %}
     <div style="padding:16px;display:flex;justify-content:flex-end;gap:10px;
                 border-top:1px solid var(--border-color)">
       <button type="submit" class="btn btn-primary btn-lg">
         <i class="fas fa-save"></i> Enregistrer toutes les notes
       </button>
     </div>
+    {% endif %}
   </div>
 </form>
 {% endblock %}

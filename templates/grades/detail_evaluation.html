@@ -241,11 +241,19 @@
             <div style="font-size:12px;color:var(--text-muted)">Absents</div>
           </div>
         </div>
+        {% if peut_voir_notes and not est_lecture_seule %}
         <a href="{% url 'saisir_notes' eval.pk %}"
            class="btn btn-primary" style="width:100%;margin-top:12px;
            justify-content:center">
           <i class="fas fa-list"></i> Voir / Modifier notes
         </a>
+        {% elif peut_voir_notes and est_lecture_seule %}
+        <a href="{% url 'saisir_notes' eval.pk %}"
+           class="btn btn-secondary" style="width:100%;margin-top:12px;
+           justify-content:center">
+          <i class="fas fa-eye"></i> Voir les notes
+        </a>
+        {% endif %}
       </div>
     </div>
     {% endif %}

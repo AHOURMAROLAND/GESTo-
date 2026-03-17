@@ -201,12 +201,39 @@ def detail_evaluation(request, pk):
         statut='ACTIVE'
     ).select_related('eleve').order_by('eleve__nom')
 
+    peut_voir_notes = (
+        request.user.is_superuser or
+        request.user.role in ('DIRECTEUR', 'CENSEUR', 'SECRETAIRE') or
+        (request.user.role == 'PROFESSEUR' and
+         eval_obj.statut == 'VALIDEE_FINALE') or
+        (request.user.role == 'PROFESSEUR' and
+         eval_obj.matiere_salle.professeur == request.user)
+    )
+
+    peut_saisir = (
+        eval_obj.statut == 'EN_SAISIE' and
+        AutorisationSaisie.objects.filter(
+            evaluation=eval_obj,
+            saisie_par=request.user,
+            est_autorisee=True,
+            notes_saisies=False,
+        ).exists()
+    )
+
+    est_lecture_seule = (
+        request.user.role == 'PROFESSEUR' and
+        eval_obj.statut == 'VALIDEE_FINALE'
+    )
+
     return render(request, 'grades/detail_evaluation.html', {
         'eval': eval_obj,
         'notes': notes,
         'autorisation': autorisation,
         'secretaires': secretaires,
         'inscrits': inscrits,
+        'peut_voir_notes': peut_voir_notes,
+        'peut_saisir': peut_saisir,
+        'est_lecture_seule': est_lecture_seule,
         'statut_color': STATUT_COLORS.get(eval_obj.statut, 'badge-gray'),
         'nb_notes': notes.filter(valeur__isnull=False).count(),
         'nb_absents': notes.filter(est_absent=True).count(),
@@ -289,21 +316,32 @@ def saisir_notes(request, pk):
     eval_obj = get_object_or_404(Evaluation, pk=pk)
     user = request.user
 
-    # Verifier autorisation
-    try:
-        autorisation = eval_obj.autorisation
-        saisisseur = autorisation.saisisseur_effectif
-        if user != saisisseur and not user.has_role('DIRECTEUR', 'CENSEUR'):
-            messages.error(request, "Vous n'etes pas autorise a saisir ces notes.")
-            return redirect('detail_evaluation', pk=pk)
-    except AutorisationSaisie.DoesNotExist:
-        if not user.has_role('DIRECTEUR', 'CENSEUR'):
-            messages.error(request, "Aucune autorisation de saisie.")
-            return redirect('detail_evaluation', pk=pk)
-        autorisation = None
+    # Droits en lecture seule pour prof après validation finale
+    est_lecture_seule = (
+        eval_obj.statut == 'VALIDEE_FINALE' or
+        (user.role == 'PROFESSEUR' and eval_obj.statut != 'EN_SAISIE' and eval_obj.matiere_salle.professeur == user)
+    )
 
-    if eval_obj.statut not in ('EN_SAISIE', 'NOTES_SAISIES', 'VALIDEE'):
-        messages.error(request, "La saisie n'est pas autorisee pour cette evaluation.")
+    # Verifier autorisation pour la saisie
+    peut_saisir = False
+    if eval_obj.statut in ('EN_SAISIE', 'NOTES_SAISIES', 'VALIDEE'):
+        try:
+            autorisation = eval_obj.autorisation
+            saisisseur = autorisation.saisisseur_effectif
+            if user == saisisseur or user.has_role('DIRECTEUR', 'CENSEUR'):
+                peut_saisir = True
+        except AutorisationSaisie.DoesNotExist:
+            if user.has_role('DIRECTEUR', 'CENSEUR'):
+                peut_saisir = True
+            autorisation = None
+    else:
+        try:
+            autorisation = eval_obj.autorisation
+        except AutorisationSaisie.DoesNotExist:
+            autorisation = None
+
+    if not peut_saisir and not est_lecture_seule and not user.has_role('DIRECTEUR', 'CENSEUR', 'SECRETAIRE'):
+        messages.error(request, "Accès refusé. Vous n'êtes pas autorisé à voir ou saisir ces notes.")
         return redirect('detail_evaluation', pk=pk)
 
     inscrits = eval_obj.matiere_salle.salle.inscriptions.filter(
@@ -370,7 +408,9 @@ def saisir_notes(request, pk):
         'inscrits': inscrits,
         'notes': notes_existantes,
         'autorisation': autorisation,
+        'est_lecture_seule': est_lecture_seule,
     })
+
 
 
 @login_required
@@ -418,6 +458,11 @@ def supprimer_evaluation(request, pk):
         titre = eval_obj.titre
         eval_obj.delete()
         messages.success(request, f"Evaluation '{titre}' supprimee.")
+        return redirect('liste_evaluations')
+
+    return redirect('liste_evaluations')
+
+
 @login_required
 @role_requis('DIRECTEUR', 'CENSEUR', 'SECRETAIRE', 'PROFESSEUR')
 def mes_taches_saisie(request):

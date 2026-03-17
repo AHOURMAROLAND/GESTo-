@@ -413,65 +413,95 @@ def retirer_parent(request, eleve_pk, parent_pk):
 @login_required
 @role_requis('DIRECTEUR', 'CENSEUR', 'SECRETAIRE')
 def export_eleves_excel(request):
-    import openpyxl
-    from django.http import HttpResponse
-
     annee = AnneeScolaire.active()
+    if not annee:
+        messages.error(request, "Aucune annee active.")
+        return redirect('liste_eleves')
+
     salle_pk = request.GET.get('salle', '')
 
-    inscriptions = Inscription.objects.select_related(
-        'eleve', 'salle', 'salle__niveau', 'annee'
-    ).filter(annee=annee, statut='ACTIVE')
+    inscriptions = Inscription.objects.filter(
+        annee=annee, statut='ACTIVE'
+    ).select_related(
+        'eleve', 'salle', 'salle__niveau'
+    ).order_by('salle__niveau__ordre', 'salle__nom', 'eleve__nom')
 
     if salle_pk:
         inscriptions = inscriptions.filter(salle__pk=salle_pk)
+
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from django.http import HttpResponse
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Eleves"
 
-    from openpyxl.styles import Font, PatternFill, Alignment
-    header_font = Font(bold=True, color="FFFFFF")
-    header_fill = PatternFill(fill_type="solid", fgColor="1E40AF")
+    BLEU = "1E40AF"
+    bleu_fill = PatternFill(fill_type="solid", fgColor=BLEU)
+    blanc_font = Font(bold=True, color="FFFFFF", size=10)
+    thin = Side(border_style="thin", color="E2E8F0")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
 
     headers = [
-        'Matricule', 'Nom', 'Prenom', 'Sexe',
-        'Date naissance', 'Lieu naissance',
-        'Salle', 'Niveau', 'Statut', 'Redoublant'
+        'N°', 'Matricule', 'Nom', 'Prénom', 'Sexe',
+        'Date naissance', 'Lieu naissance', 'Classe',
+        'Niveau', 'Redoublant', 'Contact urgence',
     ]
 
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
-        cell.font = header_font
-        cell.fill = header_fill
-        cell.alignment = Alignment(horizontal='center')
+        cell.font = blanc_font
+        cell.fill = bleu_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = border
+
+    ws.row_dimensions[1].height = 20
 
     for row, insc in enumerate(inscriptions, 2):
         e = insc.eleve
-        ws.cell(row=row, column=1, value=e.matricule)
-        ws.cell(row=row, column=2, value=e.nom)
-        ws.cell(row=row, column=3, value=e.prenom)
-        ws.cell(row=row, column=4, value=e.get_sexe_display())
-        ws.cell(row=row, column=5,
-                value=str(e.date_naissance) if e.date_naissance else '')
-        ws.cell(row=row, column=6, value=e.lieu_naissance)
-        ws.cell(row=row, column=7, value=insc.salle.nom)
-        ws.cell(row=row, column=8, value=insc.salle.niveau.nom)
-        ws.cell(row=row, column=9, value=insc.get_statut_display())
-        ws.cell(row=row, column=10, value='Oui' if e.redoublant else 'Non')
+        valeurs = [
+            row - 1,
+            e.matricule,
+            e.nom,
+            e.prenom,
+            e.get_sexe_display(),
+            e.date_naissance.strftime('%d/%m/%Y')
+            if e.date_naissance else '',
+            e.lieu_naissance or '',
+            insc.salle.nom,
+            insc.salle.niveau.nom,
+            'Oui' if e.redoublant else 'Non',
+            e.contact_urgence or '',
+        ]
+        for col, val in enumerate(valeurs, 1):
+            cell = ws.cell(row=row, column=col, value=val)
+            cell.border = border
+            cell.alignment = Alignment(vertical='center')
+            if row % 2 == 0:
+                cell.fill = PatternFill(
+                    fill_type="solid", fgColor="F8FAFC"
+                )
 
-    for col in ws.columns:
-        max_len = max(len(str(cell.value or '')) for cell in col)
-        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 30)
+    widths = [5, 15, 15, 15, 8, 14, 16, 10, 12, 12, 20]
+    for col, width in enumerate(widths, 1):
+        ws.column_dimensions[
+            openpyxl.utils.get_column_letter(col)
+        ].width = width
 
     response = HttpResponse(
-        content_type='application/vnd.openxmlformats-officedocument'
-                      '.spreadsheetml.sheet'
+        content_type=(
+            'application/vnd.openxmlformats-officedocument'
+            '.spreadsheetml.sheet'
+        )
     )
-    nom_fichier = f"eleves_{annee.nom if annee else 'export'}.xlsx"
-    response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
+    nom = f"eleves_{annee.nom}.xlsx"
+    response['Content-Disposition'] = (
+        f'attachment; filename="{nom}"'
+    )
     wb.save(response)
     return response
+
 
 
 # ── VALIDATION NUMERO WA ──────────────────────────────────────────────────────

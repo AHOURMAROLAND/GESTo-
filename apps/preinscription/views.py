@@ -152,11 +152,12 @@ def detail_preinscription(request, pk):
         'pi': pi,
         'salles': salles,
         'annee': annee,
+        'peut_valider': request.user.is_superuser or request.user.role in ('DIRECTEUR', 'CENSEUR'),
     })
 
 
 @login_required
-@role_requis('DIRECTEUR', 'CENSEUR', 'SECRETAIRE')
+@role_requis('DIRECTEUR', 'CENSEUR')
 def valider_preinscription(request, pk):
     if request.method != 'POST':
         return redirect('detail_preinscription', pk=pk)
