@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Emploi du temps{% endblock %}
+{% block page_title %}Emploi du temps{% endblock %}
+{% block extra_css %}
+<style>
+.edt-table { width:100%;border-collapse:collapse; }
+.edt-table th {
+  background:var(--primary);color:#fff;padding:10px;
+  font-size:13px;text-align:center;
+}
+.edt-table td {
+  border:1px solid var(--border-color);
+  padding:6px;min-height:50px;vertical-align:top;
+  font-size:12px;
+}
+.edt-horaire {
+  background:var(--bg-page);font-size:11px;
+  text-align:center;font-weight:600;
+  color:var(--text-muted);min-width:90px;
+}
+.edt-cours {
+  background:#EFF6FF;border-left:3px solid var(--primary);
+  border-radius:4px;padding:6px 8px;
+}
+.edt-cours .matiere { font-weight:600;color:var(--primary);font-size:12px; }
+.edt-cours .prof { font-size:10px;color:var(--text-muted);margin-top:2px; }
+.edt-pause {
+  background:#FEF9C3;text-align:center;
+  color:#D97706;font-size:11px;font-style:italic;
+}
+.edt-vide { background:#FAFAFA; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Emploi du temps</h1>
+    {% if salle_selectionnee %}
+    <p>{{ salle_selectionnee.nom }} — {{ salle_selectionnee.niveau.nom }}</p>
+    {% endif %}
+  </div>
+  <div style="display:flex;gap:10px">
+    {% if salle_selectionnee and peut_modifier %}
+    <a href="{% url 'gestion_edt' %}?salle={{ salle_selectionnee.pk }}"
+       class="btn btn-secondary">
+      <i class="fas fa-edit"></i> Modifier
+    </a>
+    <a href="{% url 'edt_pdf' salle_selectionnee.pk %}"
+       class="btn btn-danger">
+      <i class="fas fa-file-pdf"></i> PDF
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Sélecteur salle -->
+{% if request.user.role not in 'ELEVE' %}
+<form method="get" style="margin-bottom:20px">
+  <select name="salle" class="form-control" style="max-width:250px"
+          onchange="this.form.submit()">
+    <option value="">Choisir une salle...</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_pk == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }} — {{ s.niveau.nom }}
+    </option>
+    {% endfor %}
+  </select>
+</form>
+{% endif %}
+
+{% if request.user.role == 'PROFESSEUR' and mon_edt %}
+<!-- Vue personnelle professeur -->
+<div class="card mb-4">
+  <div class="card-header">
+    <h5><i class="fas fa-chalkboard-teacher"></i> Mon emploi du temps</h5>
+  </div>
+  <div class="card-body" style="padding:0">
+    {% for jour_data in mon_edt %}
+    <div style="padding:12px 20px;
+                border-bottom:1px solid var(--border-color)">
+      <div style="font-weight:600;color:var(--primary);
+                  font-size:13px;margin-bottom:8px">
+        {{ jour_data.jour }}
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        {% for cours in jour_data.cours %}
+        <div class="edt-cours" style="min-width:160px">
+          <div class="matiere">
+            {{ cours.matiere_salle.matiere.nom }}
+          </div>
+          <div class="prof">
+            {{ cours.salle.nom }} —
+            {{ cours.creneau_type.heure_debut|time:"H:i" }}–
+            {{ cours.creneau_type.heure_fin|time:"H:i" }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if salle_selectionnee and creneaux %}
+<!-- Grille EDT -->
+<div class="card" style="overflow-x:auto">
+  <div class="card-body" style="padding:0;overflow-x:auto">
+    <table class="edt-table">
+      <thead>
+        <tr>
+          <th style="min-width:90px">Horaire</th>
+          {% for jour in jours %}
+          <th>{{ jour }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for creneau in creneaux %}
+        <tr>
+          <td class="edt-horaire">
+            {{ creneau.heure_debut|time:"H:i" }}<br>
+            {{ creneau.heure_fin|time:"H:i" }}
+          </td>
+          {% for jour_idx in "012345" %}
+          <td class="{% if creneau.type == 'PAUSE' %}edt-pause{% else %}edt-vide{% endif %}">
+            {% if creneau.type == 'PAUSE' %}
+              Pause
+            {% else %}
+              {% for jour_key, creneaux_jour in grille.items %}
+                {% if jour_key == forloop.parentloop.counter0 %}
+                  {% for cren_id, edt_obj in creneaux_jour.items %}
+                    {% if cren_id == creneau.pk %}
+                      {% if not edt_obj.est_libre and edt_obj.matiere_salle %}
+                      <div class="edt-cours">
+                        <div class="matiere">
+                          {{ edt_obj.matiere_salle.matiere.nom }}
+                        </div>
+                        {% if edt_obj.matiere_salle.professeur %}
+                        <div class="prof">
+                          {{ edt_obj.matiere_salle.professeur.nom_complet }}
+                        </div>
+                        {% endif %}
+                      </div>
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% elif salle_selectionnee and not creneaux %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-calendar-times" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Aucune grille horaire configurée pour {{ salle_selectionnee.nom }}.</p>
+  {% if peut_modifier %}
+  <form method="post"
+        action="{% url 'initialiser_grille' salle_selectionnee.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary" style="margin-top:12px">
+      <i class="fas fa-magic"></i>
+      Initialiser la grille (7h–18h standard)
+    </button>
+  </form>
+  {% endif %}
+</div>
+{% else %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-calendar-alt" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Choisissez une salle pour voir son emploi du temps.</p>
+</div>
+{% endif %}
+{% endblock %}

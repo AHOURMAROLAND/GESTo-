@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Hors-ligne{% endblock %}
+{% block content %}
+<div style="text-align: center; padding: 100px 20px;">
+    <div style="font-size: 80px; color: #cbd5e1; margin-bottom: 20px;">
+        <i class="fas fa-wifi-slash"></i>
+    </div>
+    <h1 style="color: #1e293b; margin-bottom: 10px;">Vous êtes hors-ligne</h1>
+    <p style="color: #64748b; font-size: 18px; margin-bottom: 30px;">
+        Il semble que vous ayez perdu votre connexion internet.<br>
+        Vous pouvez toujours consulter les pages mises en cache.
+    </p>
+    <a href="/" class="btn btn-primary" style="padding: 12px 30px; border-radius: 8px; font-weight: 600;">
+        Retour au tableau de bord
+    </a>
+</div>
+{% endblock %}
+{% block extra_css %}
+<style>
+    .sidebar, .top-nav { display: none !important; }
+    .main-content { margin: 0 !important; width: 100% !important; }
+</style>
+{% endblock %}

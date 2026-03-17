@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sauvegardes — {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0 text-white">Sauvegardes Système</h1>
+        <p class="text-white-50 small mb-0">Gestion des sauvegardes de la base de données et des exports JSON.</p>
+    </div>
+    <form action="{% url 'declencher_sauvegarde' %}" method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary d-flex align-items-center gap-2">
+            <i class="bi bi-cloud-upload"></i>
+            Déclencher une sauvegarde
+        </button>
+    </form>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card bg-dark border-secondary mb-4">
+            <div class="card-header border-secondary">
+                <h5 class="card-title mb-0">Fichiers de sauvegarde sur le serveur</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Fichier</th>
+                                <th>Type</th>
+                                <th>Taille</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in fichiers %}
+                            <tr>
+                                <td>{{ f.date }}</td>
+                                <td><code>{{ f.nom }}</code></td>
+                                <td>
+                                    {% if f.type == 'JSON' %}
+                                    <span class="badge bg-info">JSON</span>
+                                    {% else %}
+                                    <span class="badge bg-success">SQLite</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ f.taille }} Mo</td>
+                                <td class="text-end">
+                                    <a href="{% url 'telecharger_sauvegarde' f.nom %}" class="btn btn-sm btn-outline-light">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    Aucun fichier trouvé dans le dossier <code>backups/</code>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header border-secondary">
+                <h5 class="card-title mb-0">Historique des opérations</h5>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush bg-transparent">
+                    {% for s in sauvegardes_db %}
+                    <li class="list-group-item bg-transparent border-secondary text-white py-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <div class="fw-bold d-flex align-items-center gap-2">
+                                    {% if s.statut == 'SUCCES' %}
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+                                    {% else %}
+                                    <i class="bi bi-x-circle-fill text-danger"></i>
+                                    {% endif %}
+                                    {{ s.get_type_display }}
+                                </div>
+                                <div class="small text-white-50">{{ s.created_at|date:"d/m/Y H:i" }}</div>
+                            </div>
+                            <span class="badge {% if s.statut == 'SUCCES' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ s.statut }}
+                            </span>
+                        </div>
+                        {% if s.notes %}
+                        <div class="mt-2 small p-2 bg-black bg-opacity-25 rounded border border-secondary text-white-50">
+                            {{ s.notes }}
+                        </div>
+                        {% endif %}
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent text-center py-4 text-muted">
+                        Aucun historique disponible.
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Mes tâches{% endblock %}
+{% block page_title %}Mes tâches de saisie{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Mes tâches de saisie</h1>
+    <p>{{ nb_en_attente }} en attente — {{ nb_terminees }} terminées</p>
+  </div>
+</div>
+
+<div class="grid-2 mb-4" style="max-width:400px">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-clock" style="color:#D97706"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ nb_en_attente }}</div>
+      <div class="stat-label">En attente</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-check" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ nb_terminees }}</div>
+      <div class="stat-label">Terminées</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Évaluation</th>
+          <th>Matière</th>
+          <th>Salle</th>
+          <th>Période</th>
+          <th>Assignée par</th>
+          <th>Statut</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in taches %}
+        <tr style="{% if t.notes_saisies %}opacity:0.6{% endif %}">
+          <td><strong>{{ t.evaluation.titre }}</strong></td>
+          <td>{{ t.evaluation.matiere_salle.matiere.nom }}</td>
+          <td>{{ t.evaluation.matiere_salle.salle.nom }}</td>
+          <td>{{ t.evaluation.periode }}</td>
+          <td style="font-size:12px">{{ t.autorise_par.nom_complet }}</td>
+          <td>
+            {% if t.notes_saisies %}
+            <span class="badge badge-success">Terminée</span>
+            {% else %}
+            <span class="badge badge-warning">En attente</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not t.notes_saisies %}
+            <a href="{% url 'saisir_notes' t.evaluation.pk %}"
+               class="btn btn-primary btn-sm">
+              <i class="fas fa-pen"></i> Saisir
+            </a>
+            {% else %}
+            <a href="{% url 'detail_evaluation' t.evaluation.pk %}"
+               class="btn btn-secondary btn-sm">
+              <i class="fas fa-eye"></i> Voir
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" style="text-align:center;
+              color:var(--text-muted);padding:30px">
+            Aucune tâche assignée.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

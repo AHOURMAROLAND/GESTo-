@@ -1,0 +1,21 @@
+{
+  "name": "GESTo V3",
+  "short_name": "GESTo",
+  "description": "Système de Gestion Scolaire — Ste Bakhita",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/static/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

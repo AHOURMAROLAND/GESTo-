@@ -23,4 +23,14 @@ urlpatterns = [
          name='supprimer_niveau'),
     path('parametres/niveaux/<int:niveau_pk>/groupes/', views.groupes_matieres,
          name='groupes_matieres'),
+    path('parametres/sauvegardes/', views.liste_sauvegardes, name='liste_sauvegardes'),
+    path('parametres/sauvegardes/declencher/', views.declencher_sauvegarde,
+         name='declencher_sauvegarde'),
+    path('parametres/sauvegardes/telecharger/<str:filename>/',
+         views.telecharger_sauvegarde, name='telecharger_sauvegarde'),
+
+    # PWA
+    path('manifest.json', views.pwa_manifest, name='pwa_manifest'),
+    path('sw.js', views.pwa_sw, name='pwa_sw'),
+    path('offline/', views.offline, name='offline'),
 ]

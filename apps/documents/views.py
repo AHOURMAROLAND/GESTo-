@@ -108,12 +108,13 @@ def _pdf_certificat(certificat, config):
     import qrcode
     from reportlab.lib.pagesizes import A4
     from reportlab.platypus import (
-        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
+        SimpleDocTemplate, Paragraph, Spacer,
+        Table, TableStyle, HRFlowable
     )
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
     from reportlab.lib.units import cm
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_JUSTIFY
+    from reportlab.lib.enums import TA_CENTER, TA_JUSTIFY, TA_LEFT
     from reportlab.pdfgen import canvas as pdfcanvas
 
     eleve = certificat.eleve
@@ -122,221 +123,245 @@ def _pdf_certificat(certificat, config):
         annee=annee, statut='ACTIVE'
     ).select_related('salle__niveau').first()
 
-    buffer = io.BytesIO()
-
-    BLEU = colors.HexColor('#1E40AF')
-    GRIS = colors.HexColor('#F1F5F9')
+    BLEU_FONCE = colors.HexColor('#1E3A8A')
+    BLEU_CLAIR = colors.HexColor('#DBEAFE')
+    BLEU_MED   = colors.HexColor('#3B82F6')
+    OR         = colors.HexColor('#D97706')
+    GRIS_CLAIR = colors.HexColor('#F8FAFC')
+    BORDURE    = colors.HexColor('#E2E8F0')
 
     styles = getSampleStyleSheet()
 
-    titre_style = ParagraphStyle(
-        't', parent=styles['Normal'],
-        fontSize=16, fontName='Helvetica-Bold',
-        textColor=BLEU, alignment=TA_CENTER,
-    )
-    sous_titre = ParagraphStyle(
-        'st', parent=styles['Normal'],
-        fontSize=12, fontName='Helvetica-Bold',
-        alignment=TA_CENTER, spaceAfter=6,
-    )
-    normal = ParagraphStyle(
-        'n', parent=styles['Normal'],
-        fontSize=10, leading=16,
-    )
-    justifie = ParagraphStyle(
-        'j', parent=styles['Normal'],
-        fontSize=11, leading=18,
-        alignment=TA_JUSTIFY,
-    )
-    centre = ParagraphStyle(
-        'c', parent=styles['Normal'],
-        fontSize=10, alignment=TA_CENTER,
-    )
+    def s(name, **kw):
+        return ParagraphStyle(name, parent=styles['Normal'], **kw)
 
-    # Generer QR Code
+    # ── QR CODE ───────────────────────────────────────────────────────────────
     qr_data = (
-        f"GESTo|CERT|{certificat.numero}|"
+        f"GESTO|CERT|{certificat.numero}|"
         f"{eleve.matricule}|{annee.nom}"
     )
     qr = qrcode.QRCode(version=1, box_size=4, border=2)
     qr.add_data(qr_data)
     qr.make(fit=True)
-    qr_img = qr.make_image(fill_color="black", back_color="white")
-    qr_buffer = io.BytesIO()
-    qr_img.save(qr_buffer, format='PNG')
-    qr_buffer.seek(0)
+    qr_img = qr.make_image(fill_color="#1E3A8A", back_color="white")
+    qr_buf = io.BytesIO()
+    qr_img.save(qr_buf, format='PNG')
+    qr_buf.seek(0)
 
-    def add_watermark(canvas_obj, doc):
-        """Filigrane nom ecole en arriere plan."""
+    from reportlab.platypus import Image as RLImage
+    qr_image = RLImage(qr_buf, width=2.2*cm, height=2.2*cm)
+
+    # ── FILIGRANE ─────────────────────────────────────────────────────────────
+    def filigrane(canvas_obj, doc):
         canvas_obj.saveState()
-        canvas_obj.setFont('Helvetica-Bold', 50)
-        canvas_obj.setFillColorRGB(0.9, 0.9, 0.95)
-        canvas_obj.setStrokeColorRGB(0.9, 0.9, 0.95)
-        canvas_obj.translate(A4[0] / 2, A4[1] / 2)
-        canvas_obj.rotate(45)
-        canvas_obj.drawCentredString(0, 0, config.nom_ecole[:20])
+        canvas_obj.setFont('Helvetica-Bold', 55)
+        canvas_obj.setFillColorRGB(0.93, 0.95, 0.98)
+        canvas_obj.translate(A4[0]/2, A4[1]/2)
+        canvas_obj.rotate(38)
+        nom_court = config.nom[:18] if config.nom else 'ECOLE'
+        canvas_obj.drawCentredString(0, 0, nom_court)
         canvas_obj.restoreState()
 
+    buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer, pagesize=A4,
         leftMargin=2*cm, rightMargin=2*cm,
-        topMargin=2*cm, bottomMargin=2*cm,
-        title=f"Certificat de scolarite — {eleve.nom_complet}",
+        topMargin=1.5*cm, bottomMargin=1.5*cm,
     )
 
     elements = []
 
-    # En-tete
+    # ── BANDE BLEUE EN-TETE ───────────────────────────────────────────────────
     entete = Table([[
         Paragraph(
-            f"Republique Togolaise<br/>"
-            f"<b>{config.devise_nationale}</b>",
-            ParagraphStyle('e', parent=styles['Normal'],
-                          fontSize=9, alignment=TA_CENTER)
+            f"République Togolaise<br/>"
+            f"<font size=8><b>Travail – Liberté – Patrie</b></font>",
+            s('e1', fontSize=8, textColor=colors.white,
+              alignment=TA_CENTER)
         ),
         Paragraph(
-            f"<b>{config.nom_ecole}</b><br/>"
-            f"{config.adresse or ''}<br/>"
-            f"Tel: {config.telephone or ''}",
-            ParagraphStyle('e2', parent=styles['Normal'],
-                          fontSize=9, alignment=TA_CENTER)
+            f"<b><font size=13>{config.nom}</font></b><br/>"
+            f"<font size=8>{config.adresse or ''}</font><br/>"
+            f"<font size=8>Tél : {config.telephone or ''}</font>",
+            s('e2', fontSize=9, textColor=colors.white,
+              alignment=TA_CENTER)
         ),
         Paragraph(
-            f"{config.ministre_tutelle or ''}<br/>"
-            f"Direction regionale",
-            ParagraphStyle('e3', parent=styles['Normal'],
-                          fontSize=9, alignment=TA_CENTER)
+            f"{config.ministre_tutelle or 'Ministère des Enseignements'}<br/>"
+            f"<font size=8>Direction Régionale</font>",
+            s('e3', fontSize=8, textColor=colors.white,
+              alignment=TA_CENTER)
         ),
     ]], colWidths=[5.5*cm, 7*cm, 5.5*cm])
     entete.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), BLEU_FONCE),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('ROUNDEDCORNERS', [6]),
     ]))
     elements.append(entete)
+    elements.append(Spacer(1, 0.5*cm))
 
-    # Ligne de separation
-    elements.append(Table(
-        [['']], colWidths=[18*cm],
-        style=TableStyle([
-            ('LINEBELOW', (0,0), (-1,-1), 1.5, BLEU),
-            ('TOPPADDING', (0,0), (-1,-1), 0),
-            ('BOTTOMPADDING', (0,0), (-1,-1), 0),
-        ])
-    ))
-    elements.append(Spacer(1, 0.4*cm))
-
-    # Titre
-    elements.append(Paragraph("CERTIFICAT DE SCOLARITE", titre_style))
-    elements.append(Spacer(1, 0.2*cm))
+    # ── TITRE ─────────────────────────────────────────────────────────────────
+    titre_box = Table([[
+        Paragraph(
+            "CERTIFICAT DE SCOLARITÉ",
+            s('titre', fontSize=16, fontName='Helvetica-Bold',
+              textColor=colors.white, alignment=TA_CENTER)
+        )
+    ]], colWidths=[19*cm])
+    titre_box.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), BLEU_MED),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('ROUNDEDCORNERS', [5]),
+    ]))
+    elements.append(titre_box)
     elements.append(Paragraph(
-        f"Annee scolaire {annee.nom}",
-        sous_titre
+        f"Année scolaire {annee.nom}",
+        s('as', fontSize=10, alignment=TA_CENTER,
+          textColor=BLEU_FONCE, spaceBefore=4, spaceAfter=12)
     ))
-    elements.append(Spacer(1, 0.6*cm))
 
-    # Corps du certificat
+    # ── CORPS ─────────────────────────────────────────────────────────────────
     salle_nom = inscription.salle.nom if inscription else 'Non inscrit'
     niveau_nom = inscription.salle.niveau.nom if inscription else ''
-    sexe = 'la nommee' if eleve.sexe == 'F' else 'le nomme'
+    sexe = 'la nommée' if eleve.sexe == 'F' else 'le nommé'
     article = 'Elle' if eleve.sexe == 'F' else 'Il'
     inscrit = 'inscrite' if eleve.sexe == 'F' else 'inscrit'
 
-    corps = (
-        f"Le soussigne, Directeur de l'etablissement <b>{config.nom_ecole}</b>, "
-        f"certifie que {sexe} :"
-    )
-    elements.append(Paragraph(corps, justifie))
-    elements.append(Spacer(1, 0.4*cm))
+    elements.append(Paragraph(
+        f"Je soussigné(e), Directeur(rice) de l'établissement "
+        f"<b>{config.nom}</b>, certifie que {sexe} :",
+        s('corps', fontSize=11, leading=18, alignment=TA_JUSTIFY,
+          spaceAfter=10)
+    ))
 
-    # Infos eleve dans un cadre
-    info_data = [
+    # Fiche identité élève
+    fiche = Table([
         [
-            Paragraph('<b>Nom et prenoms :</b>', normal),
-            Paragraph(f'<b>{eleve.nom_complet}</b>', normal),
+            Paragraph('<b>Nom et Prénoms</b>',
+                      s('fl', fontSize=10, textColor=BLEU_FONCE)),
+            Paragraph(f'<b>{eleve.nom_complet}</b>',
+                      s('fv', fontSize=11, fontName='Helvetica-Bold')),
         ],
         [
-            Paragraph('<b>Matricule :</b>', normal),
-            Paragraph(eleve.matricule, normal),
+            Paragraph('<b>Matricule</b>',
+                      s('fl', fontSize=10, textColor=BLEU_FONCE)),
+            Paragraph(eleve.matricule, s('fv', fontSize=10)),
         ],
         [
-            Paragraph('<b>Date de naissance :</b>', normal),
+            Paragraph('<b>Date de naissance</b>',
+                      s('fl', fontSize=10, textColor=BLEU_FONCE)),
             Paragraph(
                 eleve.date_naissance.strftime('%d/%m/%Y')
-                if eleve.date_naissance else 'Non renseignee',
-                normal
+                if eleve.date_naissance else '—',
+                s('fv', fontSize=10)
             ),
         ],
         [
-            Paragraph('<b>Lieu de naissance :</b>', normal),
-            Paragraph(eleve.lieu_naissance or 'Non renseigne', normal),
+            Paragraph('<b>Lieu de naissance</b>',
+                      s('fl', fontSize=10, textColor=BLEU_FONCE)),
+            Paragraph(
+                eleve.lieu_naissance or '—',
+                s('fv', fontSize=10)
+            ),
         ],
         [
-            Paragraph('<b>Classe :</b>', normal),
-            Paragraph(f'{salle_nom} — {niveau_nom}', normal),
+            Paragraph('<b>Classe</b>',
+                      s('fl', fontSize=10, textColor=BLEU_FONCE)),
+            Paragraph(
+                f'{salle_nom} — {niveau_nom}',
+                s('fv', fontSize=10)
+            ),
         ],
-    ]
-    info_table = Table(info_data, colWidths=[6*cm, 12*cm])
-    info_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), GRIS),
-        ('TOPPADDING', (0,0), (-1,-1), 6),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
-        ('LEFTPADDING', (0,0), (-1,-1), 12),
-        ('GRID', (0,0), (-1,-1), 0.3, colors.HexColor('#E2E8F0')),
-        ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#DBEAFE')),
+    ], colWidths=[5.5*cm, 12.5*cm])
+
+    fiche.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), GRIS_CLAIR),
+        ('BACKGROUND', (0,0), (0,-1), BLEU_CLAIR),
+        ('GRID', (0,0), (-1,-1), 0.3, BORDURE),
+        ('TOPPADDING', (0,0), (-1,-1), 7),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 7),
+        ('LEFTPADDING', (0,0), (-1,-1), 10),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('BACKGROUND', (0,2), (-1,2), colors.HexColor('#EFF6FF')),
     ]))
-    elements.append(info_table)
+    elements.append(fiche)
     elements.append(Spacer(1, 0.5*cm))
 
-    suite = (
-        f"{article} est bien {inscrit}(e) dans notre etablissement "
-        f"durant l'annee scolaire <b>{annee.nom}</b> "
-        f"en classe de <b>{salle_nom}</b>.<br/><br/>"
-        f"Le present certificat est delivre a l'interesse(e) "
-        f"pour servir et valoir ce que de droit "
-        f"(<i>{certificat.motif}</i>)."
-    )
-    elements.append(Paragraph(suite, justifie))
+    elements.append(Paragraph(
+        f"{article} est bien {inscrit}(e) dans notre établissement "
+        f"et fréquente régulièrement les cours durant l'année scolaire "
+        f"<b>{annee.nom}</b> en classe de <b>{salle_nom}</b>.<br/><br/>"
+        f"Le présent certificat est délivré à l'intéressé(e) pour "
+        f"servir et valoir ce que de droit "
+        f"(<i>{certificat.motif}</i>).",
+        s('fin', fontSize=11, leading=18, alignment=TA_JUSTIFY)
+    ))
     elements.append(Spacer(1, 0.8*cm))
 
-    # Date et lieu
+    # ── DATE ──────────────────────────────────────────────────────────────────
     from django.utils import timezone
     date_str = certificat.date_delivrance.strftime('%d/%m/%Y')
     elements.append(Paragraph(
-        f"Fait a Lome, le {date_str}",
-        centre
+        f"Fait à Lomé, le {date_str}",
+        s('date', fontSize=10, alignment=TA_CENTER)
     ))
     elements.append(Spacer(1, 0.4*cm))
 
-    # Signatures + QR Code
-    qr_image = Image(qr_buffer, width=2.5*cm, height=2.5*cm)
-
-    sig_data = [[
-        Paragraph("Le Directeur<br/><br/><br/>", centre),
+    # ── SIGNATURES + QR ───────────────────────────────────────────────────────
+    sig = Table([[
         Paragraph(
-            f"<b>N° {certificat.numero}</b>",
-            ParagraphStyle('num', parent=styles['Normal'],
-                          fontSize=8, alignment=TA_CENTER,
-                          textColor=colors.HexColor('#64748B'))
+            "Le Directeur<br/><br/><br/>"
+            "(Signature et cachet)",
+            s('sig', fontSize=9, alignment=TA_CENTER,
+              textColor=colors.HexColor('#64748B'))
         ),
-        qr_image,
-    ]]
-    sig_table = Table(
-        sig_data, colWidths=[8*cm, 6*cm, 4*cm]
-    )
-    sig_table.setStyle(TableStyle([
+        Table([[
+            Paragraph(
+                f"<b>N° {certificat.numero}</b>",
+                s('num', fontSize=8, alignment=TA_CENTER,
+                  textColor=BLEU_FONCE)
+            )], [qr_image]],
+            colWidths=[3*cm]
+        ),
+    ]], colWidths=[16*cm, 3*cm])
+    sig.setStyle(TableStyle([
         ('VALIGN', (0,0), (-1,-1), 'BOTTOM'),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+        ('ALIGN', (1,0), (1,-1), 'CENTER'),
+        ('BOX', (0,0), (0,-1), 0.5, BORDURE),
         ('TOPPADDING', (0,0), (-1,-1), 8),
     ]))
-    elements.append(sig_table)
+    elements.append(sig)
 
-    doc.build(elements, onFirstPage=add_watermark, onLaterPages=add_watermark)
+    # ── PIED DE PAGE ──────────────────────────────────────────────────────────
+    elements.append(Spacer(1, 0.4*cm))
+    elements.append(HRFlowable(
+        width='100%', thickness=1, color=BLEU_FONCE
+    ))
+    elements.append(Paragraph(
+        f"{config.nom} | {config.adresse or ''} | "
+        f"Tél : {config.telephone or ''} | {config.email or ''}",
+        s('pied', fontSize=7, alignment=TA_CENTER,
+          textColor=colors.HexColor('#94A3B8'), spaceBefore=4)
+    ))
+
+    doc.build(
+        elements,
+        onFirstPage=filigrane,
+        onLaterPages=filigrane
+    )
     buffer.seek(0)
 
     response = HttpResponse(content_type='application/pdf')
-    nom_fichier = f"certificat_{eleve.matricule}_{annee.nom}.pdf"
-    response['Content-Disposition'] = f'attachment; filename="{nom_fichier}"'
+    nom_fichier = (
+        f"certificat_{eleve.matricule}_{annee.nom}.pdf"
+    )
+    response['Content-Disposition'] = (
+        f'attachment; filename="{nom_fichier}"'
+    )
     response.write(buffer.getvalue())
     return response
 

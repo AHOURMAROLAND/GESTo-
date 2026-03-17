@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% block title %}Gestion EDT{% endblock %}
+{% block page_title %}Gestion emploi du temps{% endblock %}
+{% block extra_css %}
+<style>
+.edt-table { width:100%;border-collapse:collapse; }
+.edt-table th {
+  background:var(--primary);color:#fff;padding:10px;
+  font-size:13px;text-align:center;
+}
+.edt-table td {
+  border:1px solid var(--border-color);padding:4px;
+  vertical-align:top;min-width:140px;min-height:50px;
+}
+.edt-horaire {
+  background:var(--bg-page);font-size:11px;
+  text-align:center;font-weight:600;
+  color:var(--text-muted);min-width:90px;
+}
+.edt-pause {
+  background:#FEF9C3;text-align:center;
+  color:#D97706;font-size:11px;font-style:italic;
+}
+.creneau-select {
+  width:100%;font-size:11px;padding:4px;
+  border:1px solid var(--border-color);
+  border-radius:4px;background:#fff;
+}
+.creneau-actif {
+  background:#EFF6FF;border-left:3px solid var(--primary);
+  border-radius:4px;padding:4px 6px;font-size:11px;
+  font-weight:600;color:var(--primary);
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Gestion EDT</h1>
+    {% if salle_selectionnee %}
+    <p>{{ salle_selectionnee.nom }} — {{ salle_selectionnee.niveau.nom }}</p>
+    {% endif %}
+  </div>
+  <div style="display:flex;gap:10px">
+    {% if salle_selectionnee %}
+    <a href="{% url 'vue_edt' %}?salle={{ salle_selectionnee.pk }}"
+       class="btn btn-secondary">
+      <i class="fas fa-eye"></i> Voir
+    </a>
+    <a href="{% url 'edt_pdf' salle_selectionnee.pk %}"
+       class="btn btn-danger">
+      <i class="fas fa-file-pdf"></i> PDF
+    </a>
+    {% endif %}
+    <a href="{% url 'vue_edt' %}" class="btn btn-secondary">
+      <i class="fas fa-arrow-left"></i> Retour
+    </a>
+  </div>
+</div>
+
+<!-- Sélecteur salle -->
+<form method="get" style="margin-bottom:20px">
+  <select name="salle" class="form-control" style="max-width:250px"
+          onchange="this.form.submit()">
+    <option value="">Choisir une salle...</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_pk == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }} — {{ s.niveau.nom }}
+    </option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if salle_selectionnee and creneaux %}
+<div class="alert alert-info mb-4">
+  <i class="fas fa-info-circle"></i>
+  Cliquez sur une case pour assigner ou modifier une matière.
+  Les modifications sont sauvegardées automatiquement.
+</div>
+
+<div class="card" style="overflow-x:auto">
+  <div class="card-body" style="padding:0;overflow-x:auto">
+    <table class="edt-table" id="edt-grille">
+      <thead>
+        <tr>
+          <th>Horaire</th>
+          {% for jour in jours %}
+          <th>{{ jour }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for creneau in creneaux %}
+        <tr>
+          <td class="edt-horaire">
+            {{ creneau.heure_debut|time:"H:i" }}<br>
+            {{ creneau.heure_fin|time:"H:i" }}<br>
+            <span style="font-size:10px;color:var(--text-muted)">
+              {{ creneau.get_type_display }}
+            </span>
+          </td>
+          {% for jour_idx in "012345" %}
+          <td class="{% if creneau.type == 'PAUSE' %}edt-pause{% endif %}"
+              {% if creneau.type == 'COURS' %}
+              onclick="ouvrirModal({{ salle_selectionnee.pk }},
+                {{ creneau.pk }}, {{ forloop.counter0 }},
+                '{{ jours|slice:forloop.counter0|slice:"0:1"|first }}{{ jours|slice:forloop.counter0 }}')"
+              style="cursor:pointer"
+              {% endif %}>
+            {% if creneau.type == 'PAUSE' %}
+            Pause
+            {% else %}
+              {% for jour_key, creneaux_jour in grille.items %}
+                {% if jour_key == forloop.parentloop.counter0 %}
+                  {% for cren_id, edt_obj in creneaux_jour.items %}
+                    {% if cren_id == creneau.pk %}
+                      {% if not edt_obj.est_libre and edt_obj.matiere_salle %}
+                      <div class="creneau-actif"
+                           id="cell-{{ creneau.pk }}-{{ forloop.parentloop.parentloop.counter0 }}">
+                        {{ edt_obj.matiere_salle.matiere.nom }}<br>
+                        <span style="font-weight:400;font-size:10px">
+                          {{ edt_obj.matiere_salle.professeur.nom_complet|default:"" }}
+                        </span>
+                      </div>
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal assignation -->
+<div id="modal-edt" style="display:none;position:fixed;inset:0;
+     background:rgba(0,0,0,0.4);z-index:2000;
+     align-items:center;justify-content:center">
+  <div style="background:var(--bg-card);border-radius:12px;padding:24px;
+              width:100%;max-width:380px;margin:20px">
+    <h3 style="font-size:15px;margin-bottom:16px" id="modal-titre">
+      Assigner un cours
+    </h3>
+    <div class="form-group">
+      <label class="form-label">Matière</label>
+      <select id="select-matiere" class="form-control">
+        <option value="">— Laisser libre —</option>
+        {% for ms in matieres_salle %}
+        <option value="{{ ms.pk }}">
+          {{ ms.matiere.nom }}
+          {% if ms.professeur %}
+          ({{ ms.professeur.nom_complet }})
+          {% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button onclick="sauvegarderCreneau()"
+              class="btn btn-primary">
+        <i class="fas fa-save"></i> Sauvegarder
+      </button>
+      <button onclick="fermerModal()"
+              class="btn btn-secondary">Annuler</button>
+    </div>
+  </div>
+</div>
+
+{% elif salle_selectionnee and not creneaux %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <p>Aucune grille configurée pour {{ salle_selectionnee.nom }}.</p>
+  <form method="post"
+        action="{% url 'initialiser_grille' salle_selectionnee.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary" style="margin-top:12px">
+      <i class="fas fa-magic"></i> Initialiser grille standard (7h–18h)
+    </button>
+  </form>
+</div>
+{% else %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <p>Choisissez une salle pour gérer son emploi du temps.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentSalle = null;
+let currentCreneau = null;
+let currentJour = null;
+
+function ouvrirModal(salleId, creneauId, jourIdx, jourNom) {
+  currentSalle = salleId;
+  currentCreneau = creneauId;
+  currentJour = jourIdx;
+  document.getElementById('modal-titre').textContent =
+    'Assigner — ' + ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'][jourIdx];
+  document.getElementById('modal-edt').style.display = 'flex';
+}
+
+function fermerModal() {
+  document.getElementById('modal-edt').style.display = 'none';
+}
+
+function sauvegarderCreneau() {
+  const matiereId = document.getElementById('select-matiere').value;
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  fetch('{% url "assigner_creneau" %}', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-CSRFToken': csrfToken,
+    },
+    body: new URLSearchParams({
+      salle_id: currentSalle,
+      creneau_id: currentCreneau,
+      jour: currentJour,
+      matiere_salle_id: matiereId,
+    }),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      fermerModal();
+      // Recharger la page pour voir les changements
+      window.location.reload();
+    }
+  });
+}
+
+document.getElementById('modal-edt').addEventListener('click', function(e) {
+  if (e.target === this) fermerModal();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block title %}Bulletins{% endblock %}
+{% block page_title %}Bulletins de notes{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Bulletins de notes</h1></div>
+  {% if salle_selectionnee and periode_selectionnee %}
+  <div style="display:flex;gap:10px">
+    <a href="{% url 'bulletins_salle_pdf' salle_selectionnee.pk periode_selectionnee.pk %}"
+       class="btn btn-danger">
+      <i class="fas fa-file-pdf"></i>
+      Imprimer tous les bulletins
+    </a>
+    <a href="{% url 'proclamation' %}?salle={{ salle_selectionnee.pk }}&periode={{ periode_selectionnee.pk }}"
+       class="btn btn-primary">
+      <i class="fas fa-trophy"></i> Proclamation
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Filtres -->
+<form method="get" style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+  <select name="salle" class="form-control" style="max-width:200px"
+          onchange="this.form.submit()">
+    <option value="">Choisir une salle...</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_pk == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }} — {{ s.niveau.nom }}
+    </option>
+    {% endfor %}
+  </select>
+  <select name="periode" class="form-control" style="max-width:180px"
+          onchange="this.form.submit()">
+    <option value="">Choisir une période...</option>
+    {% for p in periodes %}
+    <option value="{{ p.pk }}"
+      {% if periode_pk == p.pk|stringformat:"s" %}selected{% endif %}>
+      {{ p }}
+    </option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if stats_classe %}
+<!-- Stats classe -->
+<div class="grid-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DBEAFE">
+      <i class="fas fa-users" style="color:#1E40AF"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats_classe.nb_eleves }}</div>
+      <div class="stat-label">Élèves</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-chart-line" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats_classe.moyenne_classe }}</div>
+      <div class="stat-label">Moyenne classe</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-check-circle" style="color:#D97706"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats_classe.nb_admis }}</div>
+      <div class="stat-label">Admis (≥10)</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-percentage" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats_classe.taux_reussite }}%</div>
+      <div class="stat-label">Taux de réussite</div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Liste bulletins -->
+{% if bulletins %}
+<div class="card">
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Rang</th>
+          <th>Élève</th>
+          {% for mm in bulletins.0.moy_matieres %}
+          <th style="font-size:11px">
+            {{ mm.matiere_salle.matiere.nom|truncatechars:8 }}
+          </th>
+          {% endfor %}
+          <th>Moy. Gén.</th>
+          <th>Mention</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in bulletins %}
+        <tr>
+          <td>
+            <strong style="color:var(--primary)">
+              {{ forloop.counter }}
+            </strong>
+          </td>
+          <td>
+            <strong>{{ b.eleve.nom_complet }}</strong>
+          </td>
+          {% for mm in b.moy_matieres %}
+          <td style="text-align:center;font-size:12px;
+                     color:{% if mm.moyenne_eleve >= 10 %}var(--success)
+                     {% else %}var(--danger){% endif %}">
+            {{ mm.moyenne_eleve|floatformat:2 }}
+          </td>
+          {% endfor %}
+          <td>
+            {% if b.moy_gen %}
+            <strong style="font-size:14px;
+                           color:{% if b.moy_gen.moyenne >= 10 %}var(--success)
+                           {% else %}var(--danger){% endif %}">
+              {{ b.moy_gen.moyenne|floatformat:2 }}
+            </strong>
+            {% else %}
+            <span style="color:var(--text-muted)">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if b.moy_gen %}
+            <span class="badge
+              {% if b.moy_gen.moyenne >= 14 %}badge-success
+              {% elif b.moy_gen.moyenne >= 10 %}badge-info
+              {% else %}badge-danger{% endif %}">
+              {% if b.moy_gen.moyenne >= 16 %}Très Bien
+              {% elif b.moy_gen.moyenne >= 14 %}Bien
+              {% elif b.moy_gen.moyenne >= 12 %}Assez Bien
+              {% elif b.moy_gen.moyenne >= 10 %}Passable
+              {% elif b.moy_gen.moyenne >= 8 %}Insuffisant
+              {% else %}Très Insuffisant{% endif %}
+            </span>
+            {% endif %}
+          </td>
+          <td>
+            {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+            <a href="{% url 'bulletin_pdf' b.eleve.pk periode_selectionnee.pk %}"
+               class="btn btn-danger btn-sm"
+               title="Télécharger PDF">
+              <i class="fas fa-file-pdf"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% elif salle_pk and periode_pk %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-chart-bar" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Aucune moyenne calculée pour cette salle et cette période.</p>
+  <p style="font-size:12px;margin-top:8px">
+    Lancez d'abord le calcul des moyennes depuis la page Notes.
+  </p>
+</div>
+{% else %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-arrow-up" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Choisissez une salle et une période pour afficher les bulletins.</p>
+</div>
+{% endif %}
+{% endblock %}

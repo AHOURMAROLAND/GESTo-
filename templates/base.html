@@ -9,6 +9,14 @@
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  
+  <!-- PWA -->
+  <link rel="manifest" href="{% url 'pwa_manifest' %}">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="apple-touch-icon" href="/static/img/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
   {% block extra_css %}{% endblock %}
 </head>
 <body data-session-remaining="{{ session_remaining }}">
@@ -40,6 +48,18 @@
           <span class="nav-icon"><i class="fas fa-user"></i></span>
           <span>Mon profil</span>
         </a>
+        <a href="{% url 'vue_edt' %}"
+           class="nav-item {% if '/emploi-du-temps/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-calendar-week"></i></span>
+          <span>Emploi du temps</span>
+        </a>
+        {% if request.user.role in 'DIRECTEUR CENSEUR' %}
+        <a href="{% url 'gestion_edt' %}"
+           class="nav-item {% if '/emploi-du-temps/gestion/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-edit"></i></span>
+          <span>Gérer EDT</span>
+        </a>
+        {% endif %}
       </div>
 
       <!-- DIRECTEUR & CENSEUR -->
@@ -86,10 +106,15 @@
           <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
           <span>Examens</span>
         </a>
-        <a href="{% url 'gestion_bulletins' %}"
+        <a href="{% url 'bulletins_salle' %}"
            class="nav-item {% if '/notes/bulletins/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span>
           <span>Bulletins</span>
+        </a>
+        <a href="{% url 'proclamation' %}"
+           class="nav-item {% if '/notes/proclamation/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-trophy"></i></span>
+          <span>Proclamation</span>
         </a>
         <a href="{% url 'liste_devoirs' %}"
            class="nav-item {% if '/devoirs/' in request.path %}active{% endif %}">
@@ -116,13 +141,16 @@
           <span class="nav-icon"><i class="fas fa-money-bill-wave"></i></span>
           <span>Finance</span>
         </a>
-        {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
         <a href="{% url 'liste_documents' %}"
            class="nav-item {% if '/documents/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
           <span>Documents</span>
         </a>
-        {% endif %}
+        <a href="{% url 'liste_sauvegardes' %}"
+           class="nav-item {% if '/sauvegardes/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-cloud-download-alt"></i></span>
+          <span>Sauvegardes</span>
+        </a>
       </div>
       {% endif %}
 
@@ -158,6 +186,11 @@
           <span class="nav-icon"><i class="fas fa-book-open"></i></span>
           <span>Devoirs</span>
         </a>
+        <a href="{% url 'bulletins_salle' %}"
+           class="nav-item {% if '/notes/bulletins/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
+          <span>Bulletins</span>
+        </a>
       </div>
       {% endif %}
 
@@ -178,15 +211,28 @@
           <span class="nav-badge">{{ taches_en_attente }}</span>
           {% endif %}
         </a>
+        <a href="{% url 'mes_taches_saisie' %}"
+           class="nav-item {% if '/notes/mes-taches/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-pen"></i></span>
+          <span>Mes tâches saisie</span>
+          {% if taches_en_attente > 0 %}
+          <span class="nav-badge">{{ taches_en_attente }}</span>
+          {% endif %}
+        </a>
         <a href="/documents/"
            class="nav-item {% if '/documents/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-file"></i></span>
           <span>Documents</span>
         </a>
-        <a href="{% url 'gestion_bulletins' %}"
+        <a href="{% url 'bulletins_salle' %}"
            class="nav-item {% if '/notes/bulletins/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-graduation-cap"></i></span>
           <span>Bulletins</span>
+        </a>
+        <a href="{% url 'proclamation' %}"
+           class="nav-item {% if '/notes/proclamation/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-trophy"></i></span>
+          <span>Proclamation</span>
         </a>
         <a href="{% url 'liste_preinscriptions' %}"
            class="nav-item {% if '/inscription/admin/' in request.path %}active{% endif %}">
@@ -252,6 +298,11 @@
           <span class="nav-icon"><i class="fas fa-book-open"></i></span>
           <span>Devoirs</span>
         </a>
+        <a href="{% url 'bulletins_salle' %}"
+           class="nav-item {% if '/notes/bulletins/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
+          <span>Bulletins</span>
+        </a>
       </div>
       {% endif %}
 
@@ -273,6 +324,11 @@
            class="nav-item {% if '/devoirs/' in request.path %}active{% endif %}">
           <span class="nav-icon"><i class="fas fa-book-open"></i></span>
           <span>Devoirs</span>
+        </a>
+        <a href="{% url 'bulletins_salle' %}"
+           class="nav-item {% if '/notes/bulletins/' in request.path %}active{% endif %}">
+          <span class="nav-icon"><i class="fas fa-file-alt"></i></span>
+          <span>Bulletins</span>
         </a>
       </div>
       {% endif %}
@@ -450,5 +506,16 @@
       .catch(() => {});
   }, 60000);
 </script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register("{% url 'pwa_sw' %}")
+        .then(reg => console.log('SW Registered', reg))
+        .catch(err => console.log('SW Failed', err));
+    });
+  }
+</script>
+
 </body>
 </html>

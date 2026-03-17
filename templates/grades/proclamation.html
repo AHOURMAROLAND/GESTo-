@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% block title %}Proclamation{% endblock %}
+{% block page_title %}Liste de proclamation{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Proclamation des résultats</h1></div>
+  {% if salle_selectionnee and periode_selectionnee %}
+  <a href="{% url 'proclamation_pdf' salle_selectionnee.pk periode_selectionnee.pk %}"
+     class="btn btn-danger">
+    <i class="fas fa-file-pdf"></i> Exporter PDF
+  </a>
+  {% endif %}
+</div>
+
+<!-- Filtres -->
+<form method="get"
+      style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap">
+  <select name="salle" class="form-control" style="max-width:200px"
+          onchange="this.form.submit()">
+    <option value="">Choisir une salle...</option>
+    {% for s in salles %}
+    <option value="{{ s.pk }}"
+      {% if salle_pk == s.pk|stringformat:"s" %}selected{% endif %}>
+      {{ s.nom }} — {{ s.niveau.nom }}
+    </option>
+    {% endfor %}
+  </select>
+  <select name="periode" class="form-control" style="max-width:180px"
+          onchange="this.form.submit()">
+    <option value="">Choisir une période...</option>
+    {% for p in periodes %}
+    <option value="{{ p.pk }}"
+      {% if periode_pk == p.pk|stringformat:"s" %}selected{% endif %}>
+      {{ p }}
+    </option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if stats %}
+<!-- Stats -->
+<div class="grid-4 mb-4">
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DBEAFE">
+      <i class="fas fa-users" style="color:#1E40AF"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.nb_total }}</div>
+      <div class="stat-label">Total élèves</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#DCFCE7">
+      <i class="fas fa-check-circle" style="color:#16A34A"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.nb_admis }}</div>
+      <div class="stat-label">Admis</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEE2E2">
+      <i class="fas fa-times-circle" style="color:#DC2626"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.nb_echec }}</div>
+      <div class="stat-label">Échoués</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon" style="background:#FEF9C3">
+      <i class="fas fa-percentage" style="color:#D97706"></i>
+    </div>
+    <div class="stat-info">
+      <div class="stat-value">{{ stats.taux_reussite }}%</div>
+      <div class="stat-label">Taux de réussite</div>
+    </div>
+  </div>
+</div>
+
+<!-- Info premier et dernier -->
+<div class="grid-2 mb-4">
+  {% if stats.premier %}
+  <div class="card card-body"
+       style="background:linear-gradient(135deg,#FEF9C3,#FEF3C7);
+              border-left:4px solid #D97706">
+    <div style="font-size:12px;color:var(--text-muted)">
+      🥇 Premier de la classe
+    </div>
+    <div style="font-size:16px;font-weight:700;margin-top:4px">
+      {{ stats.premier.eleve.nom_complet }}
+    </div>
+    <div style="font-size:14px;color:var(--success);font-weight:600">
+      {{ stats.premier.moyenne }}/20 — {{ stats.premier.mention }}
+    </div>
+  </div>
+  {% endif %}
+  <div class="card card-body">
+    <div style="font-size:12px;color:var(--text-muted)">
+      Statistiques
+    </div>
+    <div style="font-size:13px;margin-top:6px">
+      Moy. classe : <strong>{{ stats.moy_classe }}</strong> —
+      Max : <strong style="color:var(--success)">{{ stats.moy_max }}</strong> —
+      Min : <strong style="color:var(--danger)">{{ stats.moy_min }}</strong>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if resultats %}
+<div class="card">
+  <div class="table-container">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Rang</th>
+          <th>Matricule</th>
+          <th>Nom et Prénoms</th>
+          <th>Moyenne</th>
+          <th>Mention</th>
+          <th>Décision</th>
+          <th>Bulletin</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in resultats %}
+        <tr style="{% if r.decision == 'ADMIS' %}background:rgba(22,163,74,0.04)
+                   {% else %}background:rgba(220,38,38,0.04){% endif %}">
+          <td>
+            <strong style="font-size:15px;
+                           color:{% if forloop.counter == 1 %}#D97706
+                           {% elif forloop.counter == 2 %}#94A3B8
+                           {% elif forloop.counter == 3 %}#92400E
+                           {% else %}var(--text-muted){% endif %}">
+              {% if forloop.counter == 1 %}🥇
+              {% elif forloop.counter == 2 %}🥈
+              {% elif forloop.counter == 3 %}🥉
+              {% else %}{{ forloop.counter }}{% endif %}
+            </strong>
+          </td>
+          <td style="font-size:12px">{{ r.eleve.matricule }}</td>
+          <td><strong>{{ r.eleve.nom_complet }}</strong></td>
+          <td>
+            <strong style="font-size:15px;
+                           color:{% if r.moyenne >= 10 %}var(--success)
+                           {% else %}var(--danger){% endif %}">
+              {{ r.moyenne|floatformat:2 }}
+            </strong>
+          </td>
+          <td>
+            <span class="badge
+              {% if r.moyenne >= 14 %}badge-success
+              {% elif r.moyenne >= 10 %}badge-info
+              {% else %}badge-danger{% endif %}">
+              {{ r.mention }}
+            </span>
+          </td>
+          <td>
+            <span class="badge
+              {% if r.decision == 'ADMIS' %}badge-success
+              {% else %}badge-danger{% endif %}"
+              style="font-size:12px;padding:5px 10px">
+              {{ r.decision }}
+            </span>
+          </td>
+          <td>
+            {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+            <a href="{% url 'bulletin_pdf' r.eleve.pk periode_selectionnee.pk %}"
+               class="btn btn-danger btn-sm">
+              <i class="fas fa-file-pdf"></i>
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% elif salle_pk and periode_pk %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <p>Aucun résultat pour cette salle et cette période.</p>
+</div>
+{% else %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-trophy" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Choisissez une salle et une période.</p>
+</div>
+{% endif %}
+{% endblock %}

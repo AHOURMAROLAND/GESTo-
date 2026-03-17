@@ -133,7 +133,8 @@ class MoyenneMatiere(models.Model):
         unique_together = ['eleve', 'matiere_salle', 'periode']
 
     def save(self, *args, **kwargs):
-        self.points = self.moyenne_eleve * self.matiere_salle.coefficient
+        from decimal import Decimal
+        self.points = Decimal(str(self.moyenne_eleve)) * self.matiere_salle.coefficient
         m = float(self.moyenne_eleve)
         if m >= 16:      self.appreciation = 'Très Bien'
         elif m >= 14:    self.appreciation = 'Bien'

@@ -122,9 +122,10 @@
     </span>
   </div>
   <div class="card-body">
+    {% load extras %}
     {% if ma_soumission.note is not None %}
     <div style="font-size:24px;font-weight:700;
-                color:{% if ma_soumission.note >= devoir.note_sur|floatformat:0|add:0 / 2 %}var(--success){% else %}var(--danger){% endif %};
+                color:{% if ma_soumission.note >= devoir.note_sur|divide:2 %}var(--success){% else %}var(--danger){% endif %};
                 margin-bottom:8px">
       {{ ma_soumission.note }}/{{ devoir.note_sur }}
     </div>

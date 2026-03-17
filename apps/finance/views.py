@@ -443,11 +443,26 @@ def recu_pdf(request, pk):
 
     import io
     from reportlab.lib.pagesizes import A5
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer,
+        Table, TableStyle, HRFlowable
+    )
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib import colors
     from reportlab.lib.units import cm
-    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+
+    BLEU      = colors.HexColor('#1E3A8A')
+    BLEU_CLAIR = colors.HexColor('#DBEAFE')
+    VERT      = colors.HexColor('#16A34A')
+    VERT_CLAIR = colors.HexColor('#DCFCE7')
+    GRIS      = colors.HexColor('#F8FAFC')
+    BORDURE   = colors.HexColor('#E2E8F0')
+
+    styles = getSampleStyleSheet()
+
+    def s(name, **kw):
+        return ParagraphStyle(name, parent=styles['Normal'], **kw)
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
@@ -456,110 +471,151 @@ def recu_pdf(request, pk):
         topMargin=1.5*cm, bottomMargin=1.5*cm,
     )
 
-    styles = getSampleStyleSheet()
-    BLEU = colors.HexColor('#1E40AF')
-    GRIS = colors.HexColor('#F1F5F9')
-
     elements = []
 
-    titre_style = ParagraphStyle(
-        'titre', parent=styles['Normal'],
-        fontSize=14, fontName='Helvetica-Bold',
-        textColor=BLEU, alignment=TA_CENTER,
-    )
-    normal = ParagraphStyle(
-        'n', parent=styles['Normal'], fontSize=9,
-    )
-    centre = ParagraphStyle(
-        'c', parent=styles['Normal'], fontSize=9,
-        alignment=TA_CENTER,
-    )
-    bold = ParagraphStyle(
-        'b', parent=styles['Normal'],
-        fontSize=9, fontName='Helvetica-Bold',
-    )
-
-    elements.append(
-        Paragraph(config.nom, titre_style)
-    )
-    elements.append(
-        Paragraph(config.adresse or '', centre)
-    )
+    # ── EN-TETE ───────────────────────────────────────────────────────────────
+    entete = Table([[
+        Paragraph(
+            f"<b><font size=12>{config.nom}</font></b><br/>"
+            f"<font size=7>{config.adresse or ''}</font><br/>"
+            f"<font size=7>Tél : {config.telephone or ''}</font>",
+            s('eh', fontSize=9, textColor=colors.white,
+              alignment=TA_CENTER)
+        )
+    ]], colWidths=[13*cm])
+    entete.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), BLEU),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('ROUNDEDCORNERS', [6]),
+    ]))
+    elements.append(entete)
     elements.append(Spacer(1, 0.3*cm))
 
-    recu_table = Table(
-        [[Paragraph(
-            f"RECU DE PAIEMENT N° {paiement.numero_recu}",
-            ParagraphStyle('r', parent=styles['Normal'],
-                          fontSize=11, fontName='Helvetica-Bold',
-                          textColor=colors.white, alignment=TA_CENTER)
-        )]],
-        colWidths=[13*cm]
-    )
-    recu_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), BLEU),
+    # ── TITRE RECU ────────────────────────────────────────────────────────────
+    titre = Table([[
+        Paragraph(
+            f"REÇU DE PAIEMENT",
+            s('rt', fontSize=12, fontName='Helvetica-Bold',
+              textColor=colors.white, alignment=TA_CENTER)
+        ),
+        Paragraph(
+            f"N° <b>{paiement.numero_recu}</b>",
+            s('rn', fontSize=10, textColor=colors.white,
+              alignment=TA_CENTER)
+        ),
+    ]], colWidths=[7*cm, 6*cm])
+    titre.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), VERT),
         ('TOPPADDING', (0,0), (-1,-1), 8),
         ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ('ROUNDEDCORNERS', [5]),
     ]))
-    elements.append(recu_table)
-    elements.append(Spacer(1, 0.4*cm))
+    elements.append(titre)
+    elements.append(Spacer(1, 0.3*cm))
 
-    data = [
-        [Paragraph('Eleve :', bold),
-         Paragraph(paiement.eleve.nom_complet, normal)],
-        [Paragraph('Matricule :', bold),
-         Paragraph(paiement.eleve.matricule, normal)],
-        [Paragraph('Type de frais :', bold),
-         Paragraph(paiement.frais.type_frais.nom, normal)],
-        [Paragraph('Montant paye :', bold),
-         Paragraph(
-             f"{float(paiement.montant):,.0f} FCFA",
-             ParagraphStyle('m', parent=styles['Normal'],
-                           fontSize=11, fontName='Helvetica-Bold',
-                           textColor=BLEU)
-         )],
-        [Paragraph('Moyen :', bold),
-         Paragraph(paiement.get_moyen_display(), normal)],
-        [Paragraph('Date :', bold),
-         Paragraph(
-             paiement.date_paiement.strftime('%d/%m/%Y'), normal
-         )],
-        [Paragraph('Recu par :', bold),
-         Paragraph(paiement.recu_par.nom_complet, normal)],
+    # ── MONTANT MIS EN VALEUR ────────────────────────────────────────────────
+    montant_box = Table([[
+        Paragraph(
+            f"<b><font size=20 color='#16A34A'>"
+            f"{float(paiement.montant):,.0f} FCFA"
+            f"</font></b>",
+            s('mb', fontSize=14, alignment=TA_CENTER)
+        )
+    ]], colWidths=[13*cm])
+    montant_box.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,-1), VERT_CLAIR),
+        ('TOPPADDING', (0,0), (-1,-1), 10),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 10),
+        ('BOX', (0,0), (-1,-1), 1, VERT),
+        ('ROUNDEDCORNERS', [6]),
+    ]))
+    elements.append(montant_box)
+    elements.append(Spacer(1, 0.3*cm))
+
+    # ── DETAILS ───────────────────────────────────────────────────────────────
+    rows = [
+        ['Élève', paiement.eleve.nom_complet],
+        ['Matricule', paiement.eleve.matricule],
+        ['Type de frais', paiement.frais.type_frais.nom],
+        ['Moyen de paiement', paiement.get_moyen_display()],
+        ['Date', paiement.date_paiement.strftime('%d/%m/%Y')],
+        ['Reçu par', paiement.recu_par.nom_complet],
     ]
-
     if paiement.reference:
+        rows.append(['Référence', paiement.reference])
+
+    solde = float(paiement.frais.solde)
+    rows.append([
+        'Solde restant',
+        f"{solde:,.0f} FCFA"
+    ])
+
+    data = []
+    for label, valeur in rows:
         data.append([
-            Paragraph('Reference :', bold),
-            Paragraph(paiement.reference, normal),
+            Paragraph(f'<b>{label}</b>',
+                      s('dl', fontSize=9, textColor=BLEU)),
+            Paragraph(
+                f'<b>{valeur}</b>'
+                if label in ['Élève', 'Montant payé']
+                else valeur,
+                s('dv', fontSize=9)
+            ),
         ])
 
-    info_table = Table(data, colWidths=[4*cm, 9*cm])
-    info_table.setStyle(TableStyle([
+    details = Table(data, colWidths=[4.5*cm, 8.5*cm])
+    details.setStyle(TableStyle([
         ('BACKGROUND', (0,0), (-1,-1), GRIS),
-        ('TOPPADDING', (0,0), (-1,-1), 5),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 5),
+        ('BACKGROUND', (0,0), (0,-1), BLEU_CLAIR),
+        ('GRID', (0,0), (-1,-1), 0.3, BORDURE),
+        ('TOPPADDING', (0,0), (-1,-1), 6),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 6),
         ('LEFTPADDING', (0,0), (-1,-1), 8),
-        ('GRID', (0,0), (-1,-1), 0.3,
-         colors.HexColor('#E2E8F0')),
-        ('BACKGROUND', (0,3), (-1,3),
-         colors.HexColor('#DBEAFE')),
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        # Colorier solde en rouge si > 0
+        ('TEXTCOLOR', (1,-1), (1,-1),
+         colors.HexColor('#DC2626') if solde > 0
+         else colors.HexColor('#16A34A')),
+        ('FONTNAME', (1,-1), (1,-1), 'Helvetica-Bold'),
     ]))
-    elements.append(info_table)
-    elements.append(Spacer(1, 0.5*cm))
+    elements.append(details)
+    elements.append(Spacer(1, 0.4*cm))
 
-    sig_data = [[
-        Paragraph("Le Comptable", centre),
-        Paragraph("Le Directeur", centre),
-    ]]
-    sig_table = Table(sig_data, colWidths=[6.5*cm, 6.5*cm])
-    sig_table.setStyle(TableStyle([
-        ('TOPPADDING', (0,0), (-1,-1), 25),
+    # ── SIGNATURES ────────────────────────────────────────────────────────────
+    sigs = Table([[
+        Paragraph(
+            "Le Comptable<br/><br/><br/>"
+            f"<font size=8>{paiement.recu_par.nom_complet}</font>",
+            s('sc', fontSize=9, alignment=TA_CENTER,
+              textColor=colors.HexColor('#64748B'))
+        ),
+        Paragraph(
+            "Le Directeur<br/><br/><br/>(Cachet)",
+            s('sd', fontSize=9, alignment=TA_CENTER,
+              textColor=colors.HexColor('#64748B'))
+        ),
+    ]], colWidths=[6.5*cm, 6.5*cm])
+    sigs.setStyle(TableStyle([
+        ('BOX', (0,0), (0,-1), 0.3, BORDURE),
+        ('BOX', (1,0), (1,-1), 0.3, BORDURE),
+        ('TOPPADDING', (0,0), (-1,-1), 20),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
         ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('BOX', (0,0), (0,-1), 0.3, colors.grey),
-        ('BOX', (1,0), (1,-1), 0.3, colors.grey),
     ]))
-    elements.append(sig_table)
+    elements.append(sigs)
+
+    # ── PIED ──────────────────────────────────────────────────────────────────
+    elements.append(Spacer(1, 0.3*cm))
+    elements.append(HRFlowable(
+        width='100%', thickness=0.5, color=BLEU
+    ))
+    elements.append(Paragraph(
+        f"Document généré par GESTo — {config.nom}",
+        s('pied', fontSize=7, alignment=TA_CENTER,
+          textColor=colors.HexColor('#94A3B8'), spaceBefore=3)
+    ))
 
     doc.build(elements)
     buffer.seek(0)

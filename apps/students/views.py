@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q
+from django.db import models
 from .models import Eleve, Parent, EleveParent, Inscription
-from apps.academic.models import SalleClasse, AnneeScolaire
+from apps.academic.models import SalleClasse, AnneeScolaire, MatiereSalle
 from apps.authentication.models import CustomUser
 
 
@@ -40,42 +40,85 @@ def generer_matricule(annee):
 # ── ELEVES ────────────────────────────────────────────────────────────────────
 
 @login_required
-@role_requis('DIRECTEUR', 'CENSEUR', 'SECRETAIRE', 'PROFESSEUR', 'COMPTABLE')
 def liste_eleves(request):
     annee = AnneeScolaire.active()
     q = request.GET.get('q', '')
-    salle_f = request.GET.get('salle', '')
+    salle_pk = request.GET.get('salle', '')
     statut_f = request.GET.get('statut', 'ACTIVE')
 
-    inscriptions = Inscription.objects.select_related(
+    # Base queryset
+    inscriptions = Inscription.objects.filter(
+        annee=annee
+    ).select_related(
         'eleve', 'salle', 'salle__niveau'
-    ).filter(annee=annee) if annee else []
+    ).order_by(
+        'salle__niveau__ordre',
+        'salle__nom',
+        'eleve__nom',
+        'eleve__prenom',
+    ) if annee else Inscription.objects.none()
+
+    if q:
+        inscriptions = inscriptions.filter(
+            models.Q(eleve__nom__icontains=q) |
+            models.Q(eleve__prenom__icontains=q) |
+            models.Q(eleve__matricule__icontains=q)
+        )
+
+    if salle_pk:
+        inscriptions = inscriptions.filter(salle__pk=salle_pk)
 
     if statut_f:
         inscriptions = inscriptions.filter(statut=statut_f)
 
-    if salle_f:
-        inscriptions = inscriptions.filter(salle__pk=salle_f)
+    # Restriction PROFESSEUR
+    if request.user.role == 'PROFESSEUR':
+        salles_prof = MatiereSalle.objects.filter(
+            professeur=request.user, salle__annee=annee
+        ).values_list('salle_id', flat=True)
+        inscriptions = inscriptions.filter(salle__pk__in=salles_prof)
 
-    if q:
-        inscriptions = inscriptions.filter(
-            Q(eleve__nom__icontains=q) |
-            Q(eleve__prenom__icontains=q) |
-            Q(eleve__matricule__icontains=q)
-        )
+    # Grouper par salle
+    # Recompter correctement
+    groupes_salles = []
+    salle_courante = None
+    inscrits_courants = []
+
+    for insc in inscriptions:
+        if salle_courante is None:
+            salle_courante = insc.salle
+        if insc.salle != salle_courante:
+            groupes_salles.append({
+                'salle': salle_courante,
+                'inscriptions': inscrits_courants,
+                'nb': len(inscrits_courants),
+            })
+            salle_courante = insc.salle
+            inscrits_courants = []
+        inscrits_courants.append(insc)
+
+    if salle_courante and inscrits_courants:
+        groupes_salles.append({
+            'salle': salle_courante,
+            'inscriptions': inscrits_courants,
+            'nb': len(inscrits_courants),
+        })
 
     salles = SalleClasse.objects.filter(
         annee=annee, est_active=True
     ).order_by('niveau__ordre', 'nom') if annee else []
 
+    total = inscriptions.count()
+
     return render(request, 'students/liste_eleves.html', {
+        'groupes_salles': groupes_salles,
         'inscriptions': inscriptions,
         'salles': salles,
-        'annee': annee,
         'q': q,
-        'salle_filtre': salle_f,
+        'salle_pk': salle_pk,
         'statut_filtre': statut_f,
-        'total': inscriptions.count() if annee else 0,
+        'total': total,
+        'annee': annee,
     })
 
 
@@ -482,3 +525,98 @@ def verifier_numero_wa(request):
             'message': 'Non verifie (hors ligne)',
             'non_verifie': True,
         })
+
+
+# ── EXPORT PDF ────────────────────────────────────────────────────────────────
+
+@login_required
+@role_requis('DIRECTEUR', 'CENSEUR', 'SECRETAIRE')
+def export_eleves_pdf(request):
+    """Export PDF de la liste des eleves."""
+    from django.http import HttpResponse
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.lib.units import cm
+    import io
+
+    annee = AnneeScolaire.active()
+    salle_pk = request.GET.get('salle', '')
+
+    inscriptions = Inscription.objects.select_related(
+        'eleve', 'salle', 'salle__niveau'
+    ).filter(annee=annee, statut='ACTIVE').order_by(
+        'salle__niveau__ordre', 'salle__nom', 'eleve__nom'
+    )
+
+    if salle_pk:
+        inscriptions = inscriptions.filter(salle__pk=salle_pk)
+
+    buffer = io.BytesIO()
+    BLEU = colors.HexColor('#1E3A8A')
+    GRIS = colors.HexColor('#F8FAFC')
+    styles = getSampleStyleSheet()
+
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4),
+                             leftMargin=1.5*cm, rightMargin=1.5*cm,
+                             topMargin=2*cm, bottomMargin=1.5*cm)
+
+    elements = []
+    elements.append(Paragraph(
+        f"Liste des Eleves — {annee.nom if annee else ''}",
+        ParagraphStyle('t', parent=styles['Normal'], fontSize=14,
+                       fontName='Helvetica-Bold', textColor=BLEU,
+                       alignment=1, spaceAfter=12)
+    ))
+
+    header = ['#', 'Matricule', 'Nom et Prenoms', 'Sexe', 'Date Naiss.', 'Classe', 'Niveau', 'Statut']
+    data = [header]
+    for i, insc in enumerate(inscriptions, 1):
+        e = insc.eleve
+        data.append([
+            str(i), e.matricule, e.nom_complet,
+            e.get_sexe_display(),
+            e.date_naissance.strftime('%d/%m/%Y') if e.date_naissance else '-',
+            insc.salle.nom, insc.salle.niveau.nom, insc.get_statut_display()
+        ])
+
+    t = Table(data, repeatRows=1)
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), BLEU),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.3, colors.HexColor('#E2E8F0')),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, GRIS]),
+    ]))
+    elements.append(t)
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="eleves_{annee.nom if annee else "export"}.pdf"'
+    response.write(buffer.getvalue())
+    return response
+
+
+# ── MES ENFANTS (PARENT) ─────────────────────────────────────────────────────
+
+@login_required
+def mes_enfants(request):
+    """Vue parent: affiche ses enfants."""
+    from .models import EleveParent
+    try:
+        parent = request.user.profil_parent
+        eleves_parents = EleveParent.objects.filter(
+            parent=parent
+        ).select_related('eleve')
+    except Exception:
+        eleves_parents = []
+
+    return render(request, 'students/mes_enfants.html', {
+        'eleves_parents': eleves_parents,
+    })

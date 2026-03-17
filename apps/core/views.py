@@ -175,7 +175,7 @@ def dashboard(request):
     # ── PROFESSEUR ────────────────────────────────────────────────────────────
     elif user.role == 'PROFESSEUR':
         from apps.academic.models import MatiereSalle
-        from apps.grades.models import Evaluation, Note
+        from apps.grades.models import Evaluation, AutorisationSaisie
         import json
 
         mes_matieres = MatiereSalle.objects.filter(
@@ -185,12 +185,9 @@ def dashboard(request):
 
         stats_matieres = []
         for ms in mes_matieres:
+            nb_evals_total = Evaluation.objects.filter(matiere_salle=ms).count()
             nb_evals = Evaluation.objects.filter(
-                matiere_salle=ms,
-                statut='VALIDEE_FINALE',
-            ).count()
-            nb_evals_total = Evaluation.objects.filter(
-                matiere_salle=ms,
+                matiere_salle=ms, statut='VALIDEE_FINALE'
             ).count()
             taux = round(nb_evals / nb_evals_total * 100) if nb_evals_total else 0
             stats_matieres.append({
@@ -202,8 +199,7 @@ def dashboard(request):
 
         context['stats_matieres'] = stats_matieres
 
-        # Tache en attente
-        from apps.grades.models import AutorisationSaisie
+        # Taches en attente
         context['taches'] = AutorisationSaisie.objects.filter(
             saisie_par=user,
             est_autorisee=True,
@@ -213,6 +209,11 @@ def dashboard(request):
             'evaluation__matiere_salle__matiere',
         )[:5]
 
+        # Graphique — initialiser labels et data avant de les remplir
+        labels = [ms['ms'].matiere.nom for ms in stats_matieres]
+        data = [ms['taux'] for ms in stats_matieres]
+
+        # Toujours définir ces clés même si vides
         context['chart_saisie_labels'] = json.dumps(labels)
         context['chart_saisie_data'] = json.dumps(data)
 
@@ -222,6 +223,31 @@ def dashboard(request):
             publie_par=user,
             matiere_salle__salle__annee=annee,
         ).order_by('-date_publication')[:5] if annee else []
+
+    # ── SECRETAIRE ────────────────────────────────────────────────────────────────
+    elif user.role == 'SECRETAIRE':
+        from apps.grades.models import AutorisationSaisie
+
+        # Taches de saisie assignees a cette secretaire
+        taches = AutorisationSaisie.objects.filter(
+            saisie_par=user,
+            est_autorisee=True,
+            notes_saisies=False,
+        ).select_related(
+            'evaluation__matiere_salle__salle',
+            'evaluation__matiere_salle__matiere',
+            'evaluation__periode',
+        ).order_by('-evaluation__created_at')
+
+        taches_terminees = AutorisationSaisie.objects.filter(
+            saisie_par=user,
+            est_autorisee=True,
+            notes_saisies=True,
+        ).count()
+
+        context['taches'] = taches
+        context['nb_taches'] = taches.count()
+        context['nb_taches_terminees'] = taches_terminees
 
     # ── COMPTABLE ─────────────────────────────────────────────────────────────
     elif user.role == 'COMPTABLE':
@@ -656,3 +682,75 @@ def groupes_matieres(request, niveau_pk):
         'niveau': niveau, 'groupes': groupes,
         'types': GroupeMatiere.TYPES,
     })
+
+
+# ── SAUVEGARDES ───────────────────────────────────────────────────────────────
+
+@login_required
+@role_requis('DIRECTEUR')
+def liste_sauvegardes(request):
+    from .backup import lister_sauvegardes
+    sauvegardes_db = SauvegardeAuto.objects.all()[:20]
+    fichiers = lister_sauvegardes()
+    return render(request, 'core/sauvegardes.html', {
+        'sauvegardes_db': sauvegardes_db,
+        'fichiers': fichiers,
+    })
+
+
+@login_required
+@role_requis('DIRECTEUR')
+def declencher_sauvegarde(request):
+    from .backup import sauvegarde_manuelle
+    if request.method == 'POST':
+        success = sauvegarde_manuelle(user=request.user)
+        if success:
+            messages.success(request, "Sauvegarde reussie.")
+        else:
+            messages.error(request, "La sauvegarde a echoue.")
+    return redirect('liste_sauvegardes')
+
+
+@login_required
+@role_requis('DIRECTEUR')
+def telecharger_sauvegarde(request, filename):
+    import os
+    from django.conf import settings
+    from django.http import FileResponse, Http404
+
+    # Securite : empecher de sortir du dossier backups
+    if '..' in filename or '/' in filename or '\\' in filename:
+        raise Http404("Fichier invalide.")
+
+    path = os.path.join(settings.BASE_DIR, 'backups', filename)
+    if os.path.exists(path):
+        return FileResponse(open(path, 'rb'), as_attachment=True)
+    
+    raise Http404("Fichier introuvable.")
+
+
+# ── PWA ─────────────────────────────────────────────────────────────────────
+
+def pwa_manifest(request):
+    from django.http import JsonResponse
+    import json
+    import os
+    from django.conf import settings
+    path = os.path.join(settings.BASE_DIR, 'static', 'manifest.json')
+    with open(path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return JsonResponse(data)
+
+
+def pwa_sw(request):
+    from django.http import HttpResponse
+    import os
+    from django.conf import settings
+    path = os.path.join(settings.BASE_DIR, 'static', 'sw.js')
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    return HttpResponse(content, content_type='application/javascript')
+
+
+def offline(request):
+    return render(request, 'core/offline.html')

@@ -1,138 +1,195 @@
 {% extends 'base.html' %}
-{% block title %}Eleves{% endblock %}
-{% block page_title %}Eleves{% endblock %}
+{% block title %}Élèves{% endblock %}
+{% block page_title %}Liste des élèves{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
-    <h1>Eleves inscrits</h1>
-    <p>
-      {% if annee %}{{ annee.nom }} —
-      {{ total }} eleve(s){% else %}Aucune annee active{% endif %}
-    </p>
+    <h1>Élèves</h1>
+    <p>{{ total }} élève(s) inscrit(s)</p>
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap">
-    {% if annee %}
-    <a href="{% url 'export_eleves_excel' %}{% if salle_filtre %}?salle={{ salle_filtre }}{% endif %}"
-       class="btn btn-secondary">
-      <i class="fas fa-file-excel"></i> Export Excel
-    </a>
-    {% endif %}
     {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
-    <a href="{% url 'nouvel_eleve' %}" class="btn btn-primary">
-      <i class="fas fa-plus"></i> Nouvel eleve
+    <a href="{% url 'nouveau_eleve' %}" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Nouvel élève
+    </a>
+    <a href="{% url 'export_eleves_pdf' %}"
+       class="btn btn-danger">
+      <i class="fas fa-file-pdf"></i> PDF
+    </a>
+    <a href="{% url 'export_eleves_excel' %}"
+       class="btn btn-success">
+      <i class="fas fa-file-excel"></i> Excel
     </a>
     {% endif %}
   </div>
 </div>
 
-{% if not annee %}
-<div class="alert alert-warning">
-  <i class="fas fa-exclamation-triangle"></i>
-  Aucune annee active.
-</div>
-{% else %}
-
-<form method="get" style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+<!-- Filtres -->
+<form method="get"
+      style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
   <input type="text" name="q" value="{{ q }}"
-         placeholder="Rechercher nom, prenom, matricule..."
-         class="form-control" style="max-width:260px">
-  <select name="salle" class="form-control" style="max-width:180px"
+         placeholder="Nom, prénom, matricule..."
+         class="form-control" style="max-width:220px">
+  <select name="salle" class="form-control" style="max-width:200px"
           onchange="this.form.submit()">
     <option value="">Toutes les salles</option>
     {% for s in salles %}
     <option value="{{ s.pk }}"
-      {% if salle_filtre == s.pk|stringformat:"s" %}selected{% endif %}>
+      {% if salle_pk == s.pk|stringformat:"s" %}selected{% endif %}>
       {{ s.nom }} ({{ s.niveau.nom }})
     </option>
     {% endfor %}
   </select>
-  <select name="statut" class="form-control" style="max-width:150px"
+  <select name="statut" class="form-control" style="max-width:160px"
           onchange="this.form.submit()">
+    <option value="">Tous statuts</option>
     <option value="ACTIVE"
-      {% if statut_filtre == 'ACTIVE' %}selected{% endif %}>Actifs</option>
-    <option value=""
-      {% if statut_filtre == '' %}selected{% endif %}>Tous</option>
-    <option value="TRANSFEREE"
-      {% if statut_filtre == 'TRANSFEREE' %}selected{% endif %}>
-      Transferes
+      {% if statut_filtre == 'ACTIVE' %}selected{% endif %}>
+      Actifs
+    </option>
+    <option value="TRANSFERE"
+      {% if statut_filtre == 'TRANSFERE' %}selected{% endif %}>
+      Transférés
+    </option>
+    <option value="EXCLU"
+      {% if statut_filtre == 'EXCLU' %}selected{% endif %}>
+      Exclus
     </option>
   </select>
   <button type="submit" class="btn btn-primary">
     <i class="fas fa-search"></i>
   </button>
-  {% if q or salle_filtre %}
   <a href="{% url 'liste_eleves' %}" class="btn btn-secondary">
-    Reinitialiser
+    Réinitialiser
   </a>
-  {% endif %}
 </form>
 
-<div class="table-container">
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Matricule</th>
-        <th>Nom complet</th>
-        <th>Sexe</th>
-        <th>Salle</th>
-        <th>Niveau</th>
-        <th>Statut</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for insc in inscriptions %}
-      <tr>
-        <td>
-          <span class="badge badge-gray">{{ insc.eleve.matricule }}</span>
-        </td>
-        <td>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:32px;height:32px;border-radius:50%;
-                        background:var(--primary);color:#fff;
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:12px;font-weight:700;flex-shrink:0">
-              {{ insc.eleve.prenom|slice:":1" }}{{ insc.eleve.nom|slice:":1" }}
-            </div>
-            <div>
-              <div style="font-weight:600">{{ insc.eleve.nom_complet }}</div>
-              {% if insc.eleve.redoublant %}
-              <span class="badge badge-warning" style="font-size:10px">
-                Redoublant
-              </span>
-              {% endif %}
-            </div>
+{% if groupes_salles %}
+  {% for groupe in groupes_salles %}
+  <div class="card mb-4">
+    <!-- En-tête salle -->
+    <div class="card-header" style="
+         background:linear-gradient(135deg,var(--primary),#1E3A8A);
+         color:#fff">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);
+                    border-radius:8px;display:flex;align-items:center;
+                    justify-content:center;font-weight:700;font-size:14px">
+          {{ groupe.salle.nom|slice:":2" }}
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:15px">
+            {{ groupe.salle.nom }}
           </div>
-        </td>
-        <td>
-          <span class="badge {% if insc.eleve.sexe == 'M' %}badge-info{% else %}badge-pink{% endif %}">
-            {{ insc.eleve.get_sexe_display }}
-          </span>
-        </td>
-        <td><strong>{{ insc.salle.nom }}</strong></td>
-        <td>{{ insc.salle.niveau.nom }}</td>
-        <td>
-          <span class="badge {% if insc.statut == 'ACTIVE' %}badge-success{% else %}badge-gray{% endif %}">
-            {{ insc.get_statut_display }}
-          </span>
-        </td>
-        <td>
-          <a href="{% url 'detail_eleve' insc.eleve.pk %}"
-             class="btn btn-primary btn-sm">
-            <i class="fas fa-eye"></i>
-          </a>
-        </td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="7" style="text-align:center;
-            color:var(--text-muted);padding:30px">
-          Aucun eleve trouve.
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+          <div style="font-size:12px;opacity:0.8">
+            {{ groupe.salle.niveau.nom }} —
+            {{ groupe.nb }} élève(s)
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+        <a href="{% url 'export_eleves_pdf' %}?salle={{ groupe.salle.pk }}"
+           class="btn btn-danger btn-sm">
+          <i class="fas fa-file-pdf"></i>
+        </a>
+        {% endif %}
+        <a href="{% url 'bulletins_salle' %}?salle={{ groupe.salle.pk }}"
+           class="btn btn-secondary btn-sm"
+           style="background:rgba(255,255,255,0.2);border:none;color:#fff">
+          <i class="fas fa-file-alt"></i> Bulletins
+        </a>
+      </div>
+    </div>
+
+    <!-- Tableau élèves -->
+    <div class="table-container">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Matricule</th>
+            <th>Nom complet</th>
+            <th>Sexe</th>
+            <th>Date naiss.</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for insc in groupe.inscriptions %}
+          <tr>
+            <td style="color:var(--text-muted);font-size:12px">
+              {{ forloop.counter }}
+            </td>
+            <td>
+              <span style="font-family:monospace;font-size:12px">
+                {{ insc.eleve.matricule }}
+              </span>
+            </td>
+            <td>
+              <a href="{% url 'detail_eleve' insc.eleve.pk %}"
+                 style="font-weight:600;color:var(--primary);
+                        text-decoration:none">
+                {{ insc.eleve.nom_complet }}
+              </a>
+              {% if insc.eleve.redoublant %}
+              <span class="badge badge-warning"
+                    style="font-size:10px;margin-left:4px">R</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge
+                {% if insc.eleve.sexe == 'M' %}badge-info
+                {% else %}badge-warning{% endif %}">
+                {{ insc.eleve.get_sexe_display }}
+              </span>
+            </td>
+            <td style="font-size:12px">
+              {{ insc.eleve.date_naissance|date:"d/m/Y"|default:"—" }}
+            </td>
+            <td>
+              <span class="badge
+                {% if insc.statut == 'ACTIVE' %}badge-success
+                {% elif insc.statut == 'TRANSFERE' %}badge-info
+                {% else %}badge-danger{% endif %}">
+                {{ insc.get_statut_display }}
+              </span>
+            </td>
+            <td>
+              <div style="display:flex;gap:4px">
+                <a href="{% url 'detail_eleve' insc.eleve.pk %}"
+                   class="btn btn-primary btn-sm"
+                   title="Voir fiche">
+                  <i class="fas fa-eye"></i>
+                </a>
+                {% if request.user.role in 'DIRECTEUR CENSEUR SECRETAIRE' %}
+                <a href="{% url 'modifier_eleve' insc.eleve.pk %}"
+                   class="btn btn-secondary btn-sm"
+                   title="Modifier">
+                  <i class="fas fa-edit"></i>
+                </a>
+                <a href="{% url 'generer_certificat' insc.eleve.pk %}"
+                   class="btn btn-secondary btn-sm"
+                   title="Certificat">
+                  <i class="fas fa-certificate"></i>
+                </a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+<div class="card card-body" style="text-align:center;
+     color:var(--text-muted);padding:40px">
+  <i class="fas fa-user-graduate" style="font-size:40px;opacity:0.3;
+     display:block;margin-bottom:12px"></i>
+  <p>Aucun élève trouvé.</p>
 </div>
 {% endif %}
 {% endblock %}
