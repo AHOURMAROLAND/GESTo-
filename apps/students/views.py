@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import models
@@ -12,7 +13,7 @@ def role_requis(*roles):
         def wrapper(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return redirect('login')
-            if not (request.user.is_superuser or request.user.role in roles):
+            if not (request.user.is_superuser or request.user.has_role(*roles)):
                 messages.error(request, "Acces refuse.")
                 return redirect('dashboard')
             return view_func(request, *args, **kwargs)
@@ -40,11 +41,13 @@ def generer_matricule(annee):
 # ── ELEVES ────────────────────────────────────────────────────────────────────
 
 @login_required
+@role_requis('DIRECTEUR', 'CENSEUR', 'SURVEILLANT', 'SECRETAIRE', 'COMPTABLE', 'PROFESSEUR')
 def liste_eleves(request):
     annee = AnneeScolaire.active()
     q = request.GET.get('q', '')
     salle_pk = request.GET.get('salle', '')
     statut_f = request.GET.get('statut', 'ACTIVE')
+    page = request.GET.get('page', 1)
 
     # Base queryset
     inscriptions = Inscription.objects.filter(
@@ -104,6 +107,10 @@ def liste_eleves(request):
             'nb': len(inscrits_courants),
         })
 
+    # Pagination sur les groupes
+    paginator = Paginator(groupes_salles, 3)  # 3 salles par page
+    page_obj = paginator.get_page(page)
+
     salles = SalleClasse.objects.filter(
         annee=annee, est_active=True
     ).order_by('niveau__ordre', 'nom') if annee else []
@@ -111,8 +118,8 @@ def liste_eleves(request):
     total = inscriptions.count()
 
     return render(request, 'students/liste_eleves.html', {
-        'groupes_salles': groupes_salles,
-        'inscriptions': inscriptions,
+        'groupes_salles': page_obj,
+        'page_obj': page_obj,
         'salles': salles,
         'q': q,
         'salle_pk': salle_pk,

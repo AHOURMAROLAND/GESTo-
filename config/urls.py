@@ -2,6 +2,16 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import HttpResponse
+
+def robots_txt(request):
+    content = (
+        "User-agent: *\n"
+        "Disallow: /admin/\n"
+        "Disallow: /api/\n"
+        "Allow: /inscription/\n"
+    )
+    return HttpResponse(content, content_type='text/plain')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -18,4 +28,5 @@ urlpatterns = [
     path('devoirs/', include('apps.devoirs.urls')),
     path('inscription/', include('apps.preinscription.urls')),
     path('emploi-du-temps/', include('apps.academic.urls_edt')),
+    path('robots.txt', robots_txt),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

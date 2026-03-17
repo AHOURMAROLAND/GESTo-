@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.cache import cache
 from .models import ConfigurationEcole, SauvegardeAuto
 
 
@@ -65,19 +66,16 @@ def dashboard(request):
 
     # ── DIRECTEUR ─────────────────────────────────────────────────────────────
     if user.role in ('DIRECTEUR', 'CENSEUR') or user.is_superuser:
+        stats_key = f'stats_directeur_{user.pk}_{annee.pk if annee else "none"}'
+        stats = cache.get(stats_key)
+
         from apps.grades.models import Evaluation
         from apps.attendance.models import Presence
         from apps.finance.models import Paiement, FraisEleve
         from django.db.models import Sum
         import json
 
-        # Evaluations en attente
-        context['nb_evals_attente'] = Evaluation.objects.filter(
-            statut='BROUILLON',
-            matiere_salle__salle__annee=annee,
-        ).count() if annee else 0
-
-        # Presences du jour
+        # Presences du jour (not cached, volatile)
         presences_today = Presence.objects.filter(
             seance__date=today,
             seance__matiere_salle__salle__annee=annee,
@@ -90,58 +88,70 @@ def dashboard(request):
             statut__in=['ABSENT', 'ABSENT_JUSTIFIE']
         ).count()
 
-        # Finance
-        context['total_recettes'] = float(
-            Paiement.objects.aggregate(t=Sum('montant'))['t'] or 0
-        )
-        if annee:
-            frais = FraisEleve.objects.filter(annee=annee)
-            total_du = float(frais.aggregate(t=Sum('montant'))['t'] or 0)
-            total_paye = float(
-                frais.aggregate(t=Sum('montant_paye'))['t'] or 0
-            )
-            context['total_impaye'] = total_du - total_paye
-            context['taux_recouvrement'] = round(
-                total_paye / total_du * 100, 1
-            ) if total_du > 0 else 0
-
-        # Graphique 1 — Presences 7 derniers jours
-        from datetime import timedelta
-        labels_presences = []
-        data_presents = []
-        data_absents = []
-        for i in range(6, -1, -1):
-            j = today - timedelta(days=i)
-            pres = Presence.objects.filter(
-                seance__date=j,
-                seance__matiere_salle__salle__annee=annee,
-            ) if annee else Presence.objects.none()
-            labels_presences.append(j.strftime('%d/%m'))
-            data_presents.append(pres.filter(statut='PRESENT').count())
-            data_absents.append(
-                pres.filter(
-                    statut__in=['ABSENT', 'ABSENT_JUSTIFIE']
-                ).count()
-            )
-        context['chart_presences_labels'] = json.dumps(labels_presences)
-        context['chart_presences_presents'] = json.dumps(data_presents)
-        context['chart_presences_absents'] = json.dumps(data_absents)
-
-        # Graphique 2 — Eleves par niveau
-        from apps.academic.models import Niveau
-        niveaux_data = []
-        niveaux_labels = []
-        for niveau in Niveau.objects.all().order_by('ordre'):
-            nb = Inscription.objects.filter(
-                salle__niveau=niveau,
-                annee=annee,
-                statut='ACTIVE',
+        if not stats:
+            stats = {}
+            # Evaluations en attente
+            stats['nb_evals_attente'] = Evaluation.objects.filter(
+                statut='BROUILLON',
+                matiere_salle__salle__annee=annee,
             ).count() if annee else 0
-            if nb > 0:
-                niveaux_labels.append(niveau.nom)
-                niveaux_data.append(nb)
-        context['chart_niveaux_labels'] = json.dumps(niveaux_labels)
-        context['chart_niveaux_data'] = json.dumps(niveaux_data)
+
+            # Finance
+            stats['total_recettes'] = float(
+                Paiement.objects.aggregate(t=Sum('montant'))['t'] or 0
+            )
+            if annee:
+                frais = FraisEleve.objects.filter(annee=annee)
+                total_du = float(frais.aggregate(t=Sum('montant'))['t'] or 0)
+                total_paye = float(
+                    frais.aggregate(t=Sum('montant_paye'))['t'] or 0
+                )
+                stats['total_impaye'] = total_du - total_paye
+                stats['taux_recouvrement'] = round(
+                    total_paye / total_du * 100, 1
+                ) if total_du > 0 else 0
+
+            # Graphique 1 — Presences 7 derniers jours
+            from datetime import timedelta
+            labels_presences = []
+            data_presents = []
+            data_absents = []
+            for i in range(6, -1, -1):
+                j = today - timedelta(days=i)
+                pres = Presence.objects.filter(
+                    seance__date=j,
+                    seance__matiere_salle__salle__annee=annee,
+                ) if annee else Presence.objects.none()
+                labels_presences.append(j.strftime('%d/%m'))
+                data_presents.append(pres.filter(statut='PRESENT').count())
+                data_absents.append(
+                    pres.filter(
+                        statut__in=['ABSENT', 'ABSENT_JUSTIFIE']
+                    ).count()
+                )
+            stats['chart_presences_labels'] = json.dumps(labels_presences)
+            stats['chart_presences_presents'] = json.dumps(data_presents)
+            stats['chart_presences_absents'] = json.dumps(data_absents)
+
+            # Graphique 2 — Eleves par niveau
+            from apps.academic.models import Niveau
+            niveaux_data = []
+            niveaux_labels = []
+            for niveau in Niveau.objects.all().order_by('ordre'):
+                nb = Inscription.objects.filter(
+                    salle__niveau=niveau,
+                    annee=annee,
+                    statut='ACTIVE',
+                ).count() if annee else 0
+                if nb > 0:
+                    niveaux_labels.append(niveau.nom)
+                    niveaux_data.append(nb)
+            stats['chart_niveaux_labels'] = json.dumps(niveaux_labels)
+            stats['chart_niveaux_data'] = json.dumps(niveaux_data)
+
+            cache.set(stats_key, stats, 300) # 5 minutes cache
+
+        context.update(stats)
 
         # Graphique 3 — Statuts evaluations
         from apps.grades.models import Evaluation

@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.http import HttpResponse
 from .models import (
     EmploiDuTemps, CreneauType, NiveauHoraire,
-    SalleClasse, AnneeScolaire, MatiereSalle
+    SalleClasse, AnneeScolaire, MatiereSalle, Niveau
 )
 from apps.authentication.models import CustomUser
 
@@ -71,7 +71,7 @@ def vue_edt(request):
 
     salles = SalleClasse.objects.filter(
         annee=annee, est_active=True
-    ).order_by('niveau__ordre', 'nom') if annee else []
+    ).order_by('niveau__ordre', 'nom') if annee else SalleClasse.objects.none()
 
     salle_pk = request.GET.get('salle', '')
     salle_selectionnee = None
@@ -166,7 +166,7 @@ def gestion_edt(request):
 
     salles = SalleClasse.objects.filter(
         annee=annee, est_active=True
-    ).order_by('niveau__ordre', 'nom') if annee else []
+    ).order_by('niveau__ordre', 'nom') if annee else SalleClasse.objects.none()
 
     salle_pk = request.GET.get('salle', '')
     salle_selectionnee = None

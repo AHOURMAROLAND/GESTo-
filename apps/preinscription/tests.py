@@ -20,6 +20,9 @@ class PreInscriptionTestCase(TestCase):
         self.secretaire = CustomUser.objects.create_user(
             username='secret1', password='test1234', role='SECRETAIRE'
         )
+        self.censeur = CustomUser.objects.create_user(
+            username='cens1', password='test1234', role='CENSEUR'
+        )
 
     def test_formulaire_public_accessible_sans_login(self):
         """Formulaire public accessible sans connexion."""
@@ -111,7 +114,7 @@ class PreInscriptionTestCase(TestCase):
             telephone_parent='+22890000002',
             telephone_wa_parent='+22890000002',
         )
-        self.client.login(username='secret1', password='test1234')
+        self.client.login(username='cens1', password='test1234')
         response = self.client.post(
             reverse('valider_preinscription', args=[pi.pk]),
             {'salle_id': self.salle.pk}

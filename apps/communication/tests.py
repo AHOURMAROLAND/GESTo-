@@ -123,3 +123,74 @@ class BotsTestCase(TestCase):
         )
         self.assertTrue(_est_spam('B01', user))
         self.assertFalse(_est_spam('B02', user))
+
+class CalendrierTestCase(TestCase):
+
+    def setUp(self):
+        from apps.academic.models import AnneeScolaire
+        self.annee = AnneeScolaire.objects.create(
+            nom='2025-2026', est_active=True
+        )
+        self.directeur = CustomUser.objects.create_user(
+            username='dir_cal', password='test1234',
+            role='DIRECTEUR'
+        )
+        from django.test import Client
+        self.client = Client()
+        self.client.login(
+            username='dir_cal', password='test1234'
+        )
+
+    def test_creer_evenement_calendrier(self):
+        from apps.communication.models import EvenementCalendrier
+        from datetime import date
+        ev = EvenementCalendrier.objects.create(
+            titre='Toussaint',
+            type='FERIE',
+            date_debut=date(2025, 11, 1),
+            annee=self.annee,
+            creee_par=self.directeur,
+        )
+        self.assertEqual(ev.titre, 'Toussaint')
+        self.assertEqual(ev.type, 'FERIE')
+
+    def test_evenement_passe(self):
+        from apps.communication.models import EvenementCalendrier
+        from datetime import date
+        ev = EvenementCalendrier.objects.create(
+            titre='Test passé',
+            type='EVENEMENT',
+            date_debut=date(2020, 1, 1),
+            annee=self.annee,
+            creee_par=self.directeur,
+        )
+        self.assertTrue(ev.est_passe)
+
+    def test_calendrier_accessible(self):
+        from django.urls import reverse
+        response = self.client.get(
+            reverse('calendrier')
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_nouvel_evenement_accessible_directeur(self):
+        from django.urls import reverse
+        response = self.client.get(
+            reverse('nouvel_evenement')
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_reunion_parent_creation(self):
+        from apps.communication.models import ReunionParent
+        from datetime import date, time
+        r = ReunionParent.objects.create(
+            titre='Réunion T1',
+            date=date(2025, 12, 22),
+            heure=time(9, 0),
+            lieu='Salle polyvalente',
+            statut='PLANIFIEE',
+            organisee_par=self.directeur,
+            annee=self.annee,
+        )
+        self.assertEqual(r.statut, 'PLANIFIEE')
+        self.assertEqual(r.titre, 'Réunion T1')

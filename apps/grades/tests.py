@@ -303,3 +303,99 @@ class MoyenneTestCase(TestCase):
                 mg.mention, mention_attendue,
                 f"Moy {moy} → '{mention_attendue}'"
             )
+
+class BulletinTestCase(TestCase):
+
+    def setUp(self):
+        from apps.authentication.models import CustomUser
+        from django.test import Client
+        self.annee = AnneeScolaire.objects.create(
+            nom='2025-2026', est_active=True
+        )
+        self.periode = Periode.objects.create(
+            annee=self.annee, type='TRIMESTRE',
+            numero=1, est_active=True
+        )
+        self.niveau = Niveau.objects.create(nom='6eme')
+        self.salle = SalleClasse.objects.create(
+            niveau=self.niveau, annee=self.annee, nom='6eme1'
+        )
+        self.matiere = Matiere.objects.create(nom='Maths')
+        self.prof = CustomUser.objects.create_user(
+            username='prof_bull', password='test1234',
+            role='PROFESSEUR'
+        )
+        self.censeur = CustomUser.objects.create_user(
+            username='cens_bull', password='test1234',
+            role='CENSEUR'
+        )
+        self.ms = MatiereSalle.objects.create(
+            salle=self.salle, matiere=self.matiere,
+            professeur=self.prof, coefficient=3
+        )
+        user_eleve = CustomUser.objects.create_user(
+            username='eleve_bull', password='test1234',
+            role='ELEVE'
+        )
+        self.eleve = Eleve.objects.create(
+            user=user_eleve,
+            matricule='BKT-2025-BULL',
+            nom='MENSAH', prenom='Sophie', sexe='F',
+        )
+        Inscription.objects.create(
+            eleve=self.eleve, salle=self.salle,
+            annee=self.annee, statut='ACTIVE'
+        )
+        self.directeur = CustomUser.objects.create_user(
+            username='dir_bull', password='test1234',
+            role='DIRECTEUR'
+        )
+        self.client = Client()
+
+    def test_page_bulletins_accessible_directeur(self):
+        from django.urls import reverse
+        self.client.login(
+            username='dir_bull', password='test1234'
+        )
+        response = self.client.get(reverse('bulletins_salle'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_page_proclamation_accessible_censeur(self):
+        from django.urls import reverse
+        self.client.login(
+            username='cens_bull', password='test1234'
+        )
+        response = self.client.get(reverse('proclamation'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_moyenne_matiere_appreciation(self):
+        mm = MoyenneMatiere(
+            eleve=self.eleve,
+            matiere_salle=self.ms,
+            periode=self.periode,
+            moyenne_eleve=15.0,
+        )
+        mm.save()
+        self.assertEqual(mm.appreciation, 'Bien')
+
+    def test_mention_admis(self):
+        mg = MoyenneGenerale.__new__(MoyenneGenerale)
+        mg.moyenne = 12.5
+        self.assertEqual(mg.mention, 'Assez Bien')
+
+    def test_mention_echec(self):
+        mg = MoyenneGenerale.__new__(MoyenneGenerale)
+        mg.moyenne = 7.5
+        self.assertEqual(mg.mention, 'Très Insuffisant')
+
+    def test_bulletin_pdf_accessible(self):
+        from django.urls import reverse
+        self.client.login(
+            username='dir_bull', password='test1234'
+        )
+        response = self.client.get(
+            reverse('bulletin_pdf',
+                    args=[self.eleve.pk, self.periode.pk])
+        )
+        # Redirige car pas de moyenne calculée
+        self.assertIn(response.status_code, [200, 302])

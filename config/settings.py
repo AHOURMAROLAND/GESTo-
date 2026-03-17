@@ -127,3 +127,90 @@ MESSAGE_TAGS = {
     msg.DEBUG: 'secondary', msg.INFO: 'info',
     msg.SUCCESS: 'success', msg.WARNING: 'warning', msg.ERROR: 'danger',
 }
+
+# ── CACHE ─────────────────────────────────────────────────────────
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'gesto-cache',
+        'TIMEOUT': 300,  # 5 minutes
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+
+# ── IMAGES ────────────────────────────────────────────────────────
+# Taille max upload
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 Mo
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 Mo
+
+# ── SECURITE PROD ─────────────────────────────────────────────────
+if not DEBUG:
+    # HTTPS
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    # Railway gère le proxy SSL
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# ── LOGGING ───────────────────────────────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': (
+                '[{asctime}] {levelname} {name} '
+                '{module} {process:d} {thread:d} — {message}'
+            ),
+            'style': '{',
+        },
+        'simple': {
+            'format': '[{asctime}] {levelname} — {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'fichier_erreurs': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'erreurs.log',
+            'maxBytes': 5 * 1024 * 1024,  # 5 Mo
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
+        'fichier_info': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'gesto.log',
+            'maxBytes': 10 * 1024 * 1024,  # 10 Mo
+            'backupCount': 3,
+            'formatter': 'simple',
+            'level': 'INFO',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'fichier_erreurs'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['console', 'fichier_info'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+}

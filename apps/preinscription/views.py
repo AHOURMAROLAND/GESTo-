@@ -12,7 +12,7 @@ def role_requis(*roles):
         def wrapper(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return redirect('login')
-            if not (request.user.is_superuser or request.user.role in roles):
+            if not (request.user.is_superuser or request.user.has_role(*roles)):
                 messages.error(request, "Acces refuse.")
                 return redirect('dashboard')
             return view_func(request, *args, **kwargs)
@@ -193,12 +193,12 @@ def valider_preinscription(request, pk):
 
     pwd_eleve = f"bkt{random.randint(1000, 9999)}"
 
-    user_eleve = CustomUser.objects.create(
+    user_eleve = CustomUser.objects.create_user(
         username=username,
         first_name=pi.prenom_eleve,
         last_name=pi.nom_eleve,
         role='ELEVE',
-        password=make_password(pwd_eleve),
+        password=pwd_eleve,
     )
 
     from django.utils import timezone as tz
@@ -236,14 +236,14 @@ def valider_preinscription(request, pk):
 
     pwd_parent = f"bkt{random.randint(1000, 9999)}"
 
-    user_parent = CustomUser.objects.create(
+    user_parent = CustomUser.objects.create_user(
         username=up,
         first_name=pi.prenom_parent,
         last_name=pi.nom_parent,
         role='PARENT',
         telephone=pi.telephone_parent,
         telephone_wa=pi.telephone_wa_parent,
-        password=make_password(pwd_parent),
+        password=pwd_parent,
     )
 
     parent = Parent.objects.create(

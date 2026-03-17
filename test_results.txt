@@ -1,0 +1,144 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.10, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\rolan\AppData\Local\Programs\Python\Python312\python.exe
+cachedir: .pytest_cache
+django: version: 6.0.2, settings: config.settings (from ini)
+rootdir: E:\projet gestion\gestogo
+configfile: pytest.ini
+plugins: anyio-4.12.1, langsmith-0.7.12, cov-7.0.0, django-4.12.0
+collecting ... collected 108 items
+
+apps/academic/tests.py::AnneeScolaireTestCase::test_activation_annee PASSED [  0%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_activation_periode PASSED [  1%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_annee_active_aucune PASSED [  2%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_annee_active_classmethod PASSED [  3%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_creation_annee PASSED [  4%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_creation_salle PASSED [  5%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_effectif_salle PASSED [  6%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_matiere_salle_unique PASSED [  7%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_niveau_nb_periodes PASSED [  8%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_periode_active PASSED [  9%]
+apps/academic/tests.py::AnneeScolaireTestCase::test_salle_systeme_herite_niveau PASSED [ 10%]
+apps/attendance/tests.py::PresenceTestCase::test_presence_statuts PASSED [ 11%]
+apps/attendance/tests.py::PresenceTestCase::test_presence_unique_par_seance_eleve PASSED [ 12%]
+apps/attendance/tests.py::PresenceTestCase::test_seance_modifiable_en_cours PASSED [ 12%]
+apps/attendance/tests.py::PresenceTestCase::test_seance_soumise_modifiable_dans_10min PASSED [ 13%]
+apps/attendance/tests.py::PresenceTestCase::test_seance_soumise_non_modifiable_apres_10min PASSED [ 14%]
+apps/attendance/tests.py::PresenceTestCase::test_seance_verrouillee_non_modifiable PASSED [ 15%]
+apps/authentication/tests.py::AuthTestCase::test_creation_personnel PASSED [ 16%]
+apps/authentication/tests.py::AuthTestCase::test_dashboard_avec_connexion PASSED [ 17%]
+apps/authentication/tests.py::AuthTestCase::test_dashboard_sans_connexion PASSED [ 18%]
+apps/authentication/tests.py::AuthTestCase::test_has_role PASSED         [ 19%]
+apps/authentication/tests.py::AuthTestCase::test_liste_personnel_acces_refuse_professeur PASSED [ 20%]
+apps/authentication/tests.py::AuthTestCase::test_liste_personnel_accessible_directeur PASSED [ 21%]
+apps/authentication/tests.py::AuthTestCase::test_login_correct_role PASSED [ 22%]
+apps/authentication/tests.py::AuthTestCase::test_login_mauvais_password PASSED [ 23%]
+apps/authentication/tests.py::AuthTestCase::test_login_mauvais_role PASSED [ 24%]
+apps/authentication/tests.py::AuthTestCase::test_nom_complet PASSED      [ 25%]
+apps/authentication/tests.py::AuthTestCase::test_profil_accessible PASSED [ 25%]
+apps/communication/tests.py::NotificationTestCase::test_creation_notification PASSED [ 26%]
+apps/communication/tests.py::NotificationTestCase::test_marquer_notification_lue PASSED [ 27%]
+apps/communication/tests.py::NotificationTestCase::test_message_interne PASSED [ 28%]
+apps/communication/tests.py::NotificationTestCase::test_notification_non_lue_par_defaut PASSED [ 29%]
+apps/communication/tests.py::BotsTestCase::test_31_templates_definis PASSED [ 30%]
+apps/communication/tests.py::BotsTestCase::test_anti_spam PASSED         [ 31%]
+apps/communication/tests.py::BotsTestCase::test_templates_ont_categorie_et_message PASSED [ 32%]
+apps/communication/tests.py::BotsTestCase::test_valider_numero_wa_format_correct PASSED [ 33%]
+apps/communication/tests.py::BotsTestCase::test_valider_numero_wa_format_invalide PASSED [ 34%]
+apps/communication/tests.py::BotsTestCase::test_valider_numero_wa_format_local_togo PASSED [ 35%]
+apps/communication/tests.py::BotsTestCase::test_valider_numero_wa_format_sans_plus PASSED [ 36%]
+apps/communication/tests.py::CalendrierTestCase::test_calendrier_accessible PASSED [ 37%]
+apps/communication/tests.py::CalendrierTestCase::test_creer_evenement_calendrier PASSED [ 37%]
+apps/communication/tests.py::CalendrierTestCase::test_evenement_passe PASSED [ 38%]
+apps/communication/tests.py::CalendrierTestCase::test_nouvel_evenement_accessible_directeur PASSED [ 39%]
+apps/communication/tests.py::CalendrierTestCase::test_reunion_parent_creation PASSED [ 40%]
+apps/devoirs/tests.py::DevoirsTestCase::test_correction_soumission PASSED [ 41%]
+apps/devoirs/tests.py::DevoirsTestCase::test_creation_devoir PASSED      [ 42%]
+apps/devoirs/tests.py::DevoirsTestCase::test_devoir_en_retard PASSED     [ 43%]
+apps/devoirs/tests.py::DevoirsTestCase::test_devoir_pas_en_retard PASSED [ 44%]
+apps/devoirs/tests.py::DevoirsTestCase::test_liste_devoirs_accessible_eleve PASSED [ 45%]
+apps/devoirs/tests.py::DevoirsTestCase::test_liste_devoirs_accessible_prof PASSED [ 46%]
+apps/devoirs/tests.py::DevoirsTestCase::test_nouveau_devoir_accessible_prof PASSED [ 47%]
+apps/devoirs/tests.py::DevoirsTestCase::test_soumission_devoir PASSED    [ 48%]
+apps/devoirs/tests.py::DevoirsTestCase::test_soumission_unique_par_devoir_eleve PASSED [ 49%]
+apps/devoirs/tests.py::DevoirsTestCase::test_taux_remise_devoir PASSED   [ 50%]
+apps/discipline/tests.py::DisciplineTestCase::test_approbation_sanction PASSED [ 50%]
+apps/discipline/tests.py::DisciplineTestCase::test_creation_type_sanction PASSED [ 51%]
+apps/discipline/tests.py::DisciplineTestCase::test_demande_exclusion_creation PASSED [ 52%]
+apps/discipline/tests.py::DisciplineTestCase::test_exclusion_refusee_sans_droits PASSED [ 53%]
+apps/discipline/tests.py::DisciplineTestCase::test_liste_sanctions_accessible_censeur PASSED [ 54%]
+apps/discipline/tests.py::DisciplineTestCase::test_nouvelle_sanction_accessible_surveillant PASSED [ 55%]
+apps/discipline/tests.py::DisciplineTestCase::test_sanction_statut_defaut PASSED [ 56%]
+apps/finance/tests.py::FinanceTestCase::test_format_numero_recu PASSED   [ 57%]
+apps/finance/tests.py::FinanceTestCase::test_numero_recu_sequentiel PASSED [ 58%]
+apps/finance/tests.py::FinanceTestCase::test_solde_apres_paiement_partiel PASSED [ 59%]
+apps/finance/tests.py::FinanceTestCase::test_solde_frais PASSED          [ 60%]
+apps/finance/tests.py::FinanceTestCase::test_solde_zero_apres_paiement_complet PASSED [ 61%]
+apps/finance/tests.py::FinanceTestCase::test_tarif_total PASSED          [ 62%]
+apps/finance/tests.py::RecouvrementTestCase::test_dashboard_finance_accessible_comptable PASSED [ 62%]
+apps/finance/tests.py::RecouvrementTestCase::test_dashboard_finance_accessible_directeur PASSED [ 63%]
+apps/finance/tests.py::RecouvrementTestCase::test_etat_recouvrement_accessible PASSED [ 64%]
+apps/finance/tests.py::RecouvrementTestCase::test_finance_refuse_eleve PASSED [ 65%]
+apps/finance/tests.py::RecouvrementTestCase::test_frais_eleve_solde_initial PASSED [ 66%]
+apps/finance/tests.py::RecouvrementTestCase::test_liste_paiements_accessible PASSED [ 67%]
+apps/finance/tests.py::RecouvrementTestCase::test_liste_tarifs_accessible PASSED [ 68%]
+apps/finance/tests.py::RecouvrementTestCase::test_paiement_partiel_reduit_solde PASSED [ 69%]
+apps/grades/tests.py::EvaluationTestCase::test_autorisation_saisisseur_effectif_sans_assignation PASSED [ 70%]
+apps/grades/tests.py::EvaluationTestCase::test_creation_evaluation_brouillon PASSED [ 71%]
+apps/grades/tests.py::EvaluationTestCase::test_historique_note PASSED    [ 72%]
+apps/grades/tests.py::EvaluationTestCase::test_note_unique_par_evaluation_eleve PASSED [ 73%]
+apps/grades/tests.py::EvaluationTestCase::test_saisie_note_absent PASSED [ 74%]
+apps/grades/tests.py::EvaluationTestCase::test_saisie_note_valide PASSED [ 75%]
+apps/grades/tests.py::EvaluationTestCase::test_workflow_validation_evaluation PASSED [ 75%]
+apps/grades/tests.py::MoyenneTestCase::test_appreciation_moyenne_matiere PASSED [ 76%]
+apps/grades/tests.py::MoyenneTestCase::test_mention_moyenne_generale PASSED [ 77%]
+apps/grades/tests.py::MoyenneTestCase::test_points_calcules PASSED       [ 78%]
+apps/grades/tests.py::BulletinTestCase::test_bulletin_pdf_accessible PASSED [ 79%]
+apps/grades/tests.py::BulletinTestCase::test_mention_admis PASSED        [ 80%]
+apps/grades/tests.py::BulletinTestCase::test_mention_echec PASSED        [ 81%]
+apps/grades/tests.py::BulletinTestCase::test_moyenne_matiere_appreciation FAILED [ 82%]
+apps/grades/tests.py::BulletinTestCase::test_page_bulletins_accessible_directeur PASSED [ 83%]
+apps/grades/tests.py::BulletinTestCase::test_page_proclamation_accessible_censeur PASSED [ 84%]
+apps/preinscription/tests.py::PreInscriptionTestCase::test_formulaire_public_accessible_sans_login PASSED [ 85%]
+apps/preinscription/tests.py::PreInscriptionTestCase::test_liste_preinscriptions_accessible_secretaire PASSED [ 86%]
+apps/preinscription/tests.py::PreInscriptionTestCase::test_page_confirmation_accessible PASSED [ 87%]
+apps/preinscription/tests.py::PreInscriptionTestCase::test_reference_generee_automatiquement PASSED [ 87%]
+apps/preinscription/tests.py::PreInscriptionTestCase::test_soumission_formulaire PASSED [ 88%]
+apps/preinscription/tests.py::PreInscriptionTestCase::test_statut_par_defaut_en_attente PASSED [ 89%]
+apps/preinscription/tests.py::PreInscriptionTestCase::test_validation_cree_eleve_et_parent PASSED [ 90%]
+apps/students/tests.py::EleveTestCase::test_detail_eleve_accessible PASSED [ 91%]
+apps/students/tests.py::EleveTestCase::test_effectif_salle_apres_inscription PASSED [ 92%]
+apps/students/tests.py::EleveTestCase::test_eleve_parent_lien PASSED     [ 93%]
+apps/students/tests.py::EleveTestCase::test_export_excel_accessible PASSED [ 94%]
+apps/students/tests.py::EleveTestCase::test_inscription_active PASSED    [ 95%]
+apps/students/tests.py::EleveTestCase::test_inscription_unique_par_annee PASSED [ 96%]
+apps/students/tests.py::EleveTestCase::test_liste_eleves_accessible_directeur PASSED [ 97%]
+apps/students/tests.py::EleveTestCase::test_liste_eleves_refusee_eleve PASSED [ 98%]
+apps/students/tests.py::EleveTestCase::test_nom_complet PASSED           [ 99%]
+apps/students/tests.py::EleveTestCase::test_salle_active PASSED          [100%]
+
+================================== FAILURES ===================================
+_____________ BulletinTestCase.test_moyenne_matiere_appreciation ______________
+
+self = <apps.grades.tests.BulletinTestCase testMethod=test_moyenne_matiere_appreciation>
+
+    def test_moyenne_matiere_appreciation(self):
+        mm = MoyenneMatiere(
+            eleve=self.eleve,
+            matiere_salle=self.ms,
+            periode=self.periode,
+            moyenne_eleve=15.0,
+        )
+        mm.save()
+>       self.assertEqual(mm.appreciation, 'TrÞs Bien')
+E       AssertionError: 'Bien' != 'TrÞs Bien'
+E       - Bien
+E       + TrÞs Bien
+
+apps\grades\tests.py:379: AssertionError
+=============================== tests coverage ================================
+______________ coverage: platform win32, python 3.12.10-final-0 _______________
+
+Coverage HTML written to dir htmlcov
+=========================== short test summary info ===========================
+FAILED apps/grades/tests.py::BulletinTestCase::test_moyenne_matiere_appreciation
+================== 1 failed, 107 passed in 457.82s (0:07:37) ==================
